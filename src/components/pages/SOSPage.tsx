@@ -1,5 +1,6 @@
 'use client';
 
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
@@ -97,6 +98,8 @@ export default function SOSPage() {
   const sosButtonRef = useRef<HTMLDivElement>(null);
   const redirectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingSeverityRef = useRef<number>(4);
+  const pendingDescriptionRef = useRef<string | undefined>(undefined);
 
   /* Simulate location detection */
   useEffect(() => {
@@ -193,19 +196,17 @@ export default function SOSPage() {
 
   const handleConfirmEmergency = useCallback(
     (severity: number, description?: string) => {
+      pendingSeverityRef.current = severity;
+      pendingDescriptionRef.current = description;
       setShowCountdown(true);
-      // After countdown completes, activate
-      const countdownMs = 3000 + 200; // buffer after countdown
-      setTimeout(() => {
-        activateSOS(severity, description);
-      }, countdownMs);
     },
-    [activateSOS]
+    []
   );
 
   const handleCountdownComplete = useCallback(() => {
-    // SOS is activated via timeout in handleConfirmEmergency
-  }, []);
+    setShowCountdown(false);
+    activateSOS(pendingSeverityRef.current, pendingDescriptionRef.current);
+  }, [activateSOS]);
 
   const handleCancel = useCallback(() => {
     cancelEmergency();
@@ -440,12 +441,6 @@ export default function SOSPage() {
             </div>
           </div>
         </div>
-
-        {/* Countdown overlay */}
-        <CountdownTimer
-          isActive={showCountdown}
-          onComplete={handleCountdownComplete}
-        />
       </motion.div>
     );
   }
@@ -590,7 +585,7 @@ export default function SOSPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            Press and hold for 3 seconds to activate
+            Press and hold for 2 seconds to activate
           </motion.p>
 
           {/* Emergency number */}
@@ -648,6 +643,12 @@ export default function SOSPage() {
         open={showConfirm}
         onOpenChange={setShowConfirm}
         onConfirm={handleConfirmEmergency}
+      />
+
+      {/* Countdown overlay (shown after user confirms emergency) */}
+      <CountdownTimer
+        isActive={showCountdown}
+        onComplete={handleCountdownComplete}
       />
     </motion.div>
   );

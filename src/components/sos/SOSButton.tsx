@@ -9,7 +9,7 @@ interface SOSButtonProps {
   isActivated: boolean;
 }
 
-const HOLD_DURATION = 3000;
+const HOLD_DURATION = 2000;
 const BUTTON_SIZE_DESKTOP = 180;
 const BUTTON_SIZE_MOBILE = 150;
 const SVG_SIZE = BUTTON_SIZE_DESKTOP + 20;
@@ -54,7 +54,7 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   }, [isActivated]);
 
   const completeHold = useCallback(() => {
-    if (progress >= 0.95) {
+    if (progress >= 0.85) {
       resetHold();
       onHoldComplete();
     } else {
@@ -210,14 +210,14 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
           scale: isHolding ? 1.02 : isHovering ? 1.05 : 1,
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        onMouseDown={(e) => { e.preventDefault(); startHold(); }}
+        onMouseDown={startHold}
         onMouseUp={completeHold}
         onMouseLeave={() => { setIsHovering(false); resetHold(); }}
         onTouchStart={(e) => { e.preventDefault(); startHold(); }}
-        onTouchEnd={completeHold}
+        onTouchEnd={(e) => { e.preventDefault(); completeHold(); }}
         onTouchCancel={resetHold}
         onContextMenu={(e) => e.preventDefault()}
-        aria-label="SOS Emergency Button - Press and hold for 3 seconds to activate"
+        aria-label="SOS Emergency Button - Press and hold for 2 seconds to activate"
       >
         {/* Inner highlight */}
         <div
@@ -238,7 +238,7 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
               exit={{ opacity: 0, scale: 0.8 }}
             >
               <span className="text-white font-bold text-lg">
-                {Math.ceil((1 - progress) * 3)}
+                {Math.ceil((1 - progress) * 2)}
               </span>
               <span className="text-white/70 text-xs font-medium">HOLD</span>
             </motion.div>
