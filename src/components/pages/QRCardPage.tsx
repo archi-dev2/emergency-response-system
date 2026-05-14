@@ -35,7 +35,7 @@ const stagger = {
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 const CARD_VARIANTS = {
@@ -105,22 +105,10 @@ export default function QRCardPage() {
     { name: 'Sulfa Drugs', severity: 'Moderate' },
   ];
 
-  // QR Code data as JSON
+  // QR Code data as a URL for phone scanning
   const qrData = useMemo(() => {
-    return JSON.stringify({
-      patientName: patient.name,
-      patientId: patient.id,
-      bloodGroup: BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS'],
-      allergies: patient.allergies,
-      medications: patient.currentMedications,
-      emergencyContacts: patient.emergencyContacts.map((c) => ({
-        name: c.name,
-        relationship: c.relationship,
-        phone: c.phone,
-      })),
-      app: 'LifeLink',
-      version: '1.0',
-    });
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    return `${baseUrl}/emergency/${patient.id}`;
   }, [patient]);
 
   const handleDownload = async () => {
@@ -248,7 +236,7 @@ export default function QRCardPage() {
       className="space-y-6 p-4 md:p-6"
     >
       {/* Hidden QR for download */}
-      <div className="fixed -left-[9999px] -top-[9999px]" aria-hidden="true">
+      <div className="fixed left-[-9999px] top-[-9999px]" aria-hidden="true">
         <div id="qr-download-source">
           <QRCodeSVG
             value={qrData}
@@ -295,7 +283,7 @@ export default function QRCardPage() {
               >
                 {!isFlipped ? (
                   /* FRONT */
-                  <div className={`w-full h-full bg-gradient-to-br ${variant.front} p-5 flex flex-col justify-between text-white relative`}>
+                  <div className={`w-full h-full bg-linear-to-br ${variant.front} p-5 flex flex-col justify-between text-white relative`}>
                     {/* Background pattern */}
                     <div className="absolute inset-0 opacity-5">
                       <div className="absolute top-0 right-0 w-40 h-40 rounded-full border-2 border-white" />
@@ -353,7 +341,7 @@ export default function QRCardPage() {
                   </div>
                 ) : (
                   /* BACK */
-                  <div className={`w-full h-full bg-gradient-to-br ${variant.front} p-5 flex flex-col justify-between text-white relative`}>
+                  <div className={`w-full h-full bg-linear-to-br ${variant.front} p-5 flex flex-col justify-between text-white relative`}>
                     <div className="absolute inset-0 opacity-5">
                       <div className="absolute top-4 left-4 right-4 bottom-4 rounded-xl border border-white" />
                     </div>
