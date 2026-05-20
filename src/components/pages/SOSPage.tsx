@@ -233,7 +233,7 @@ export default function SOSPage() {
     ? { initial: {}, animate: {} }
     : {
         initial: { opacity: 0, scale: 0.97 },
-        animate: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
+        animate: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' as const } },
       };
 
   const pulseRingAnim = prefersReducedMotion
@@ -241,7 +241,7 @@ export default function SOSPage() {
     : {
         scale: [0.8, 2.5],
         opacity: [0.8, 0],
-        transition: { duration: 2.5, repeat: Infinity, ease: 'easeOut' },
+        transition: { duration: 2.5, repeat: Infinity, ease: 'easeOut' as const },
       };
 
   const floatAnim = (delay: number, duration: number) =>
@@ -250,7 +250,7 @@ export default function SOSPage() {
       : {
           y: [0, -18, 0],
           rotate: [0, 4, 0],
-          transition: { duration, repeat: Infinity, ease: 'easeInOut', delay },
+          transition: { duration, repeat: Infinity, ease: 'easeInOut' as const, delay },
         };
 
   /* ---- Render ---- */

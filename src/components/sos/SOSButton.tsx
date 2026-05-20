@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface SOSButtonProps {
   onHoldComplete: () => void;
@@ -23,6 +24,7 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
+  const { toast } = useToast();
 
   const resetHold = useCallback(() => {
     setIsHolding(false);
@@ -58,9 +60,16 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
       resetHold();
       onHoldComplete();
     } else {
+      if (progress > 0) {
+        toast({ 
+          title: "Hold Required", 
+          description: "Please press and HOLD the SOS button for 2 seconds to activate.",
+          variant: "destructive"
+        });
+      }
       resetHold();
     }
-  }, [progress, resetHold, onHoldComplete]);
+  }, [progress, resetHold, onHoldComplete, toast]);
 
   useEffect(() => {
     return () => {

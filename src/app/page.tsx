@@ -105,7 +105,6 @@ export default function Home() {
       </DashboardLayout>
       <SOSFloatingButton />
       <OnboardingFlow />
-      <NotificationPanel />
       <SearchDialog />
     </>
   );

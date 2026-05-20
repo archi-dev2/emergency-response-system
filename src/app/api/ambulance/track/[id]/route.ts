@@ -53,7 +53,7 @@ export async function GET(
       currentLat = current.lat + (Math.random() - 0.5) * 0.001; // Small jitter
       currentLng = current.lng + (Math.random() - 0.5) * 0.001;
       bearing = parseFloat(
-        (Math.atan2(next.lng - current.lng, next.lat - current.lat) * (180 / Math.PI) + 360).toFixed(1) % 360
+        ((Math.atan2(next.lng - current.lng, next.lat - current.lat) * (180 / Math.PI) + 360) % 360).toFixed(1)
       );
       speed = 25 + Math.random() * 30; // 25-55 km/h in city traffic
       eta = Math.max(0, Math.round(480 - (waypointIndex / route.length) * 480));

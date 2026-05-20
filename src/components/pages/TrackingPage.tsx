@@ -31,10 +31,11 @@ import { useNavigationStore, useEmergencyStore } from '@/store';
 import { DEMO_AMBULANCES, DEMO_HOSPITALS } from '@/lib/mock-data';
 import { getRelativeTime, STATUS_COLORS } from '@/lib/constants';
 import type { TrackingData } from '@/types';
+import MapWrapper from '@/components/ui/MapWrapper';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // Simulated ambulance route waypoints (Delhi area)
@@ -51,8 +52,8 @@ const ROUTE_WAYPOINTS = [
   { lat: 28.635, lng: 77.230 },
 ];
 
-const PATIENT_POS = { x: 78, y: 55 }; // % position on map
-const HOSPITAL_POS = { x: 85, y: 35 }; // % position on map
+const PATIENT_POS = [ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng] as [number, number];
+const HOSPITAL_POS = [ROUTE_WAYPOINTS[ROUTE_WAYPOINTS.length - 1].lat, ROUTE_WAYPOINTS[ROUTE_WAYPOINTS.length - 1].lng] as [number, number];
 
 export default function TrackingPage() {
   const { setCurrentPage } = useNavigationStore();
@@ -63,19 +64,15 @@ export default function TrackingPage() {
   const [eta, setEta] = useState(512); // seconds
   const [speed, setSpeed] = useState(42);
   const [distance, setDistance] = useState(3.2);
-  const [ambulancePos, setAmbulancePos] = useState({ x: 12, y: 82 }); // start bottom-left
+  const [ambulancePos, setAmbulancePos] = useState<[number, number]>(PATIENT_POS); // start at patient
   const [shareToast, setShareToast] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const hasActive = sosActivated || activeEmergency !== null;
 
   // Map waypoint index to visual position
-  const getMapPosition = useCallback((index: number) => {
-    const t = index / (ROUTE_WAYPOINTS.length - 1);
-    return {
-      x: 12 + t * (PATIENT_POS.x - 12),
-      y: 82 + t * (PATIENT_POS.y - 82),
-    };
+  const getMapPosition = useCallback((index: number): [number, number] => {
+    return [ROUTE_WAYPOINTS[index].lat, ROUTE_WAYPOINTS[index].lng];
   }, []);
 
   useEffect(() => {
@@ -217,102 +214,18 @@ export default function TrackingPage() {
         transition={{ duration: 0.5 }}
         className="relative flex-1 lg:w-[65%] bg-slate-900 dark:bg-slate-950 overflow-hidden"
       >
-        {/* Grid background */}
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
+        <MapWrapper
+          center={ambulancePos}
+          zoom={15}
+          route={ROUTE_WAYPOINTS.map(w => [w.lat, w.lng] as [number, number])}
+          markers={[
+            { id: 'patient', type: 'patient' as const, position: PATIENT_POS, label: 'Your Location' },
+            { id: 'hospital', type: 'hospital' as const, position: HOSPITAL_POS, label: hospital.name },
+            { id: 'ambulance', type: 'ambulance' as const, position: ambulancePos, label: ambulance.vehicleNumber }
+          ]}
         />
-
-        {/* Route path (SVG dashed line) */}
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <path
-            d={`M ${12} ${82} L ${PATIENT_POS.x} ${PATIENT_POS.y}`}
-            fill="none"
-            stroke="rgba(255,255,255,0.3)"
-            strokeWidth="0.4"
-            strokeDasharray="2 2"
-            className="route-dash"
-          />
-          <path
-            d={`M ${PATIENT_POS.x} ${PATIENT_POS.y} L ${HOSPITAL_POS.x} ${HOSPITAL_POS.y}`}
-            fill="none"
-            stroke="rgba(255,100,100,0.3)"
-            strokeWidth="0.3"
-            strokeDasharray="1.5 1.5"
-          />
-        </svg>
-
-        {/* Animated ambulance icon that moves along a path */}
-        <motion.div
-          className="absolute z-10"
-          animate={{
-            left: `${ambulancePos.x}%`,
-            top: `${ambulancePos.y}%`,
-          }}
-          transition={{ duration: 1.5, ease: 'linear' }}
-        >
-          <div className="relative -translate-x-1/2 -translate-y-1/2">
-            {/* Animated pulse ring */}
-            <div className="absolute inset-0 w-12 h-12 rounded-full bg-amber-500/20 animate-ping" />
-            {/* Ambulance icon with wiggle */}
-            <motion.div
-              className="relative w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center shadow-lg"
-              animate={
-                prefersReducedMotion
-                  ? {}
-                  : { rotate: [-2, 2, -2] }
-              }
-              transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <Truck className="h-6 w-6 text-white" />
-            </motion.div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
-              {ambulance.vehicleNumber}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Patient marker */}
-        <div
-          className="absolute z-10"
-          style={{ left: `${PATIENT_POS.x}%`, top: `${PATIENT_POS.y}%` }}
-        >
-          <div className="relative -translate-x-1/2 -translate-y-1/2">
-            <motion.div
-              className="absolute inset-0 w-10 h-10 rounded-full bg-blue-500/20"
-              animate={prefersReducedMotion ? {} : { scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <div className="relative w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 text-white" />
-            </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
-              Your Location
-            </div>
-          </div>
-        </div>
-
-        {/* Hospital marker */}
-        <div
-          className="absolute z-10"
-          style={{ left: `${HOSPITAL_POS.x}%`, top: `${HOSPITAL_POS.y}%` }}
-        >
-          <div className="relative -translate-x-1/2 -translate-y-1/2">
-            <div className="relative w-10 h-10 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
-              {hospital.name}
-            </div>
-          </div>
-        </div>
-
         {/* Map Legend */}
-        <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-xs space-y-1.5">
+        <div className="absolute bottom-4 left-4 z-[400] bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-xs space-y-1.5 pointer-events-none">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
             <span>Ambulance</span>

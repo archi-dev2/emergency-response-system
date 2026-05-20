@@ -103,7 +103,7 @@ interface EmergencyState {
     hospitalId?: string;
     patientLatitude: number;
     patientLongitude: number;
-    timeline: { id: string; event: string; description?: string; timestamp: string }[];
+    timeline: { id: string; requestId: string; event: string; description?: string; timestamp: string }[];
     startedAt: string;
   } | null;
   trackingData: {
@@ -141,7 +141,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => ({
         patientLatitude: lat,
         patientLongitude: lng,
         timeline: [
-          { id: '1', event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
+          { id: '1', requestId, event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
         ],
         startedAt: now,
       },
@@ -177,7 +177,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => ({
           ...activeEmergency,
           timeline: [
             ...activeEmergency.timeline,
-            { id: `${activeEmergency.timeline.length + 1}`, event, description, timestamp: new Date().toISOString() },
+            { id: `${activeEmergency.timeline.length + 1}`, requestId: activeEmergency.requestId, event, description, timestamp: new Date().toISOString() },
           ],
         },
       });

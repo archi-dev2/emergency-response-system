@@ -196,7 +196,7 @@ function CustomTooltipLine({ active, payload, label }: { active?: boolean; paylo
   );
 }
 
-function CustomTooltipBar({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }> }) {
+function CustomTooltipBar({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string; payload: any }> }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border bg-background p-3 shadow-md text-sm">
