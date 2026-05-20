@@ -78,6 +78,18 @@ npm install        # or: yarn install
 npm run dev        # or: yarn dev
 ```
 
+### Testing QR Codes with Mobile Devices
+
+To test the QR scanning feature from a real phone (across any network), you need to expose your local server to the internet using ngrok:
+
+1. Install [ngrok](https://ngrok.com/) and authenticate with your account token (`ngrok config add-authtoken <token>`).
+2. Run `ngrok http 3000` in a new terminal window.
+3. Copy the provided public Forwarding URL (e.g., `https://abc-123.ngrok-free.app`).
+4. Add it to your `.env` file: `NEXT_PUBLIC_BASE_URL=https://abc-123.ngrok-free.app`
+5. Restart your Next.js development server.
+
+Now anyone, regardless of their mobile network or Wi-Fi, can scan the QR cards!
+
 ## 📁 Project Structure
 
 ```
