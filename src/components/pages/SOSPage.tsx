@@ -128,7 +128,7 @@ export default function SOSPage() {
     };
   }, [sosActivated, activeEmergency]);
 
-  /* Simulate connection steps after activation */
+  /* Reactive connection steps based on actual emergency status */
   const wasActiveRef = useRef(false);
 
   useEffect(() => {
@@ -141,20 +141,30 @@ export default function SOSPage() {
     }
 
     wasActiveRef.current = true;
+    const status = activeEmergency.status;
 
+    // Steps 1 & 2 complete immediately on SOS activation
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const steps = ['location', 'alert', 'ambulance', 'hospital'];
+    timers.push(setTimeout(() => {
+      setCompletedSteps((prev) => new Set([...prev, 'location']));
+    }, 800));
+    timers.push(setTimeout(() => {
+      setCompletedSteps((prev) => new Set([...prev, 'alert']));
+    }, 1600));
 
-    steps.forEach((step, index) => {
-      timers.push(
-        setTimeout(() => {
-          setCompletedSteps((prev) => new Set([...prev, step]));
-        }, 800 + index * 900)
-      );
-    });
+    // Step 3 completes when driver accepts (AMBULANCE_ASSIGNED or later)
+    if (status === 'AMBULANCE_ASSIGNED' || status === 'EN_ROUTE' || status === 'ARRIVED') {
+      timers.push(setTimeout(() => {
+        setCompletedSteps((prev) => new Set([...prev, 'ambulance']));
+      }, 600));
+      // Step 4 completes shortly after ambulance is assigned
+      timers.push(setTimeout(() => {
+        setCompletedSteps((prev) => new Set([...prev, 'hospital']));
+      }, 1500));
+    }
 
     return () => timers.forEach(clearTimeout);
-  }, [sosActivated, activeEmergency]);
+  }, [sosActivated, activeEmergency, activeEmergency?.status]);
 
   /* Auto-redirect to tracking after all steps complete */
   const allStepsDone = completedSteps.size === CONNECTION_STEPS.length;
@@ -355,6 +365,7 @@ export default function SOSPage() {
               {CONNECTION_STEPS.map((step, index) => {
                 const done = completedSteps.has(step.id);
                 const Icon = step.icon;
+                const isWaitingStep = step.id === 'ambulance' && activeEmergency?.status === 'WAITING_FOR_DRIVER' && !done;
                 return (
                   <motion.div
                     key={step.id}
@@ -367,13 +378,21 @@ export default function SOSPage() {
                       className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 ${
                         done
                           ? 'bg-green-500/20 border-green-500/50'
+                          : isWaitingStep
+                          ? 'bg-amber-500/20 border-amber-500/50'
                           : 'bg-zinc-800/50 border-zinc-700'
                       }`}
-                      animate={done ? { scale: [0.8, 1.1, 1] } : {}}
-                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                      animate={done ? { scale: [0.8, 1.1, 1] } : isWaitingStep ? { scale: [1, 1.1, 1] } : {}}
+                      transition={done ? { type: 'spring', stiffness: 400, damping: 15 } : { duration: 1.5, repeat: Infinity }}
                     >
                       {done ? (
                         <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      ) : isWaitingStep ? (
+                        <motion.div
+                          className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        />
                       ) : (
                         <Icon className="w-5 h-5 text-zinc-600" />
                       )}
@@ -381,12 +400,13 @@ export default function SOSPage() {
                     <div>
                       <p
                         className={`text-sm font-semibold transition-colors duration-300 ${
-                          done ? 'text-green-400' : 'text-zinc-500'
+                          done ? 'text-green-400' : isWaitingStep ? 'text-amber-400' : 'text-zinc-500'
                         }`}
                       >
-                        {step.label}
+                        {isWaitingStep ? 'Waiting for Driver...' : step.label}
                       </p>
                       {done && <p className="text-[10px] text-green-500/60 mt-0.5">Completed</p>}
+                      {isWaitingStep && <p className="text-[10px] text-amber-400/60 mt-0.5">Searching for nearby drivers</p>}
                     </div>
                   </motion.div>
                 );

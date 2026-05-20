@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,6 +38,7 @@ import {
 import { DEMO_HOSPITALS } from '@/lib/mock-data';
 import { haversineDistance } from '@/lib/constants';
 import type { Hospital, HospitalWithDistance } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 // ÔöÇÔöÇÔöÇ Types ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 type GeoStatus = 'idle' | 'loading' | 'success' | 'error' | 'denied';
@@ -210,6 +211,7 @@ export default function HospitalsPage() {
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'beds'>('distance');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
+  const { toast } = useToast();
 
   // Geo & fetch state
   const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
@@ -728,7 +730,7 @@ export default function HospitalsPage() {
                             Get Directions
                           </Button>
                         </a>
-                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={() => toast({ title: 'Hospital Details', description: `Loading details for ${hospital.name}...` })}>
                           <Eye className="h-3.5 w-3.5" />
                           View Details
                         </Button>

@@ -23,6 +23,7 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
+  const progressRef = useRef<number>(0);
 
   const resetHold = useCallback(() => {
     setIsHolding(false);
@@ -41,11 +42,13 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
     if (isActivated) return;
     setIsHolding(true);
     setProgress(0);
+    progressRef.current = 0;
     startTimeRef.current = Date.now();
 
     animFrameRef.current = requestAnimationFrame(function tick() {
       const elapsed = Date.now() - startTimeRef.current;
       const pct = Math.min(elapsed / HOLD_DURATION, 1);
+      progressRef.current = pct;
       setProgress(pct);
       if (pct < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
@@ -54,13 +57,12 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   }, [isActivated]);
 
   const completeHold = useCallback(() => {
-    if (progress >= 0.85) {
-      resetHold();
+    const currentProgress = progressRef.current;
+    resetHold();
+    if (currentProgress >= 0.85) {
       onHoldComplete();
-    } else {
-      resetHold();
     }
-  }, [progress, resetHold, onHoldComplete]);
+  }, [resetHold, onHoldComplete]);
 
   useEffect(() => {
     return () => {
