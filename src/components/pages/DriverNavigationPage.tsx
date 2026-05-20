@@ -30,7 +30,8 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { SEVERITY_LABELS, DEMO_PATIENTS, DEMO_HOSPITALS } from '@/lib/mock-data';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
-import { useNavigationStore } from '@/store';
+import { useNavigationStore, useEmergencyStore } from '@/store';
+import { useToast } from '@/hooks/use-toast';
 
 /* ──────────────────────────────────────────────
    Animation variants
@@ -101,6 +102,13 @@ export default function DriverNavigationPage() {
   const [ambulancePosition, setAmbulancePosition] = useState(3); // index along ROUTE_POINTS
 
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage);
+  const { markArrived, completeEmergency } = useEmergencyStore();
+  const { toast } = useToast();
+
+  const handleCompleteTrip = () => {
+    completeEmergency();
+    setCurrentPage('driver-dashboard');
+  };
 
   /* Assignment data */
   const assignment = useMemo(
@@ -402,12 +410,14 @@ export default function DriverNavigationPage() {
                 {/* ──── 7. Action Buttons overlay (bottom-right) ──── */}
                 <div className="absolute bottom-3 right-3 flex items-center gap-2">
                   <Button
+                    onClick={() => toast({ title: 'Emergency Services Alerted', description: 'Additional support is on the way.' })}
                     className="bg-red-600 hover:bg-red-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-red-500/30 text-xs"
                   >
                     <AlertTriangle className="h-4 w-4" />
                     Emergency
                   </Button>
                   <Button
+                    onClick={handleCompleteTrip}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-emerald-500/30 text-xs"
                   >
                     <CheckCircle2 className="h-4 w-4" />
@@ -574,7 +584,7 @@ export default function DriverNavigationPage() {
                     <Phone className="h-3 w-3" />
                     <span>{assignment.hospital.phone}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[10px]">
+                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[10px]" onClick={() => toast({ title: 'Calling Hospital', description: 'Connecting to emergency ward...' })}>
                     <PhoneCall className="h-3 w-3 text-emerald-500" />
                     Call Hospital
                   </Button>
@@ -592,10 +602,10 @@ export default function DriverNavigationPage() {
           {/* Quick call buttons */}
           <motion.div variants={fadeUp}>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="gap-2 h-10 text-xs">
+              <Button variant="outline" className="gap-2 h-10 text-xs" onClick={() => toast({ title: 'Calling Patient', description: 'Connecting...' })}>
                 <Phone className="h-3.5 w-3.5" /> Call Patient
               </Button>
-              <Button variant="outline" className="gap-2 h-10 text-xs">
+              <Button variant="outline" className="gap-2 h-10 text-xs" onClick={() => markArrived()}>
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Mark Arrived
               </Button>
             </div>
