@@ -32,6 +32,7 @@ import { SEVERITY_LABELS, DEMO_PATIENTS, DEMO_HOSPITALS } from '@/lib/mock-data'
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import { useNavigationStore, useEmergencyStore } from '@/store';
 import { useToast } from '@/hooks/use-toast';
+import MapWrapper from '@/components/ui/MapWrapper';
 
 /* ──────────────────────────────────────────────
    Animation variants

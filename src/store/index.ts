@@ -161,8 +161,8 @@ export const useEmergencyStore = create<EmergencyState>()(
             patientLatitude: lat,
             patientLongitude: lng,
             timeline: [
-              { id: '1', event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
-              { id: '2', event: 'Alert Broadcast', description: 'Notifying nearby drivers...', timestamp: now },
+              { id: '1', requestId, event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
+              { id: '2', requestId, event: 'Alert Broadcast', description: 'Notifying nearby drivers...', timestamp: now },
             ],
             startedAt: now,
           },
@@ -231,7 +231,7 @@ export const useEmergencyStore = create<EmergencyState>()(
               ...activeEmergency,
               timeline: [
                 ...activeEmergency.timeline,
-                { id: `${activeEmergency.timeline.length + 1}`, event, description, timestamp: new Date().toISOString() },
+                { id: `${activeEmergency.timeline.length + 1}`, requestId: activeEmergency.requestId, event, description, timestamp: new Date().toISOString() },
               ],
             },
           });

@@ -39,6 +39,7 @@ import { DEMO_HOSPITALS } from '@/lib/mock-data';
 import { haversineDistance } from '@/lib/constants';
 import type { Hospital, HospitalWithDistance } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import MapWrapper from '@/components/ui/MapWrapper';
 
 // ÔöÇÔöÇÔöÇ Types ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 type GeoStatus = 'idle' | 'loading' | 'success' | 'error' | 'denied';

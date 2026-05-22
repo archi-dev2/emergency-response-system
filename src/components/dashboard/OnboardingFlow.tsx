@@ -286,7 +286,7 @@ export default function OnboardingFlow() {
   useEffect(() => {
     try {
       const done = localStorage.getItem(STORAGE_KEY);
-      if (!done && user?.isAuthenticated) {
+      if (!done && user) {
         // Small delay so the dashboard renders first
         const timer = setTimeout(() => setIsVisible(true), 500);
         return () => clearTimeout(timer);
@@ -294,7 +294,7 @@ export default function OnboardingFlow() {
     } catch {
       // localStorage not available
     }
-  }, [user?.isAuthenticated]);
+  }, [user]);
 
   const handleComplete = useCallback(() => {
     setExiting(true);
