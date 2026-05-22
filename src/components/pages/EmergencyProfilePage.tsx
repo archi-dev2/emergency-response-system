@@ -75,18 +75,9 @@ function parseMedication(med: string): { name: string; dosage: string; frequency
   return { name, dosage, frequency: 'Daily' };
 }
 
-// QR code data payload
-const qrData = JSON.stringify({
-  patientId: patient.id,
-  name: patient.name,
-  bloodGroup: patient.bloodGroup,
-  allergies: patient.allergies,
-  medications: patient.currentMedications,
-  conditions: patient.chronicConditions,
-  emergencyContacts: patient.emergencyContacts.map(c => ({ name: c.name, phone: c.phone })),
-  app: 'LifeLink',
-  version: '1.0.0',
-});
+// QR code data as a URL for phone scanning
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
+const qrData = `${baseUrl}/emergency/${patient.id}`;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -110,7 +101,7 @@ export default function EmergencyProfilePage() {
   return (
     <div className="min-h-screen bg-background print:bg-white print:min-h-auto">
       {/* ============ EMERGENCY HEADER BANNER ============ */}
-      <div className="relative bg-gradient-to-r from-red-700 via-red-600 to-rose-600 text-white print:bg-red-600 overflow-hidden">
+      <div className="relative bg-linear-to-r from-red-700 via-red-600 to-rose-600 text-white print:bg-red-600 overflow-hidden">
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-10 print:hidden" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -172,7 +163,7 @@ export default function EmergencyProfilePage() {
         {/* ============ PATIENT INFO CARD ============ */}
         <motion.div variants={fadeUp}>
           <Card className="overflow-hidden border-2 border-red-200 dark:border-red-900/50 shadow-lg print:border-red-300 print:shadow-none print:break-inside-avoid">
-            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-3 flex items-center justify-between">
+            <div className="bg-linear-to-r from-red-600 to-rose-600 px-5 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-white/80" />
                 <span className="text-white font-semibold text-sm">Patient Information</span>
@@ -187,7 +178,7 @@ export default function EmergencyProfilePage() {
                 {/* Avatar + Core Info */}
                 <div className="flex items-start gap-4 flex-1">
                   <div className="relative shrink-0">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-2 border-red-100 dark:border-red-900/40 flex items-center justify-center">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-2 border-red-100 dark:border-red-900/40 flex items-center justify-center">
                       <User className="w-10 h-10 sm:w-12 sm:h-12 text-red-500" />
                     </div>
                     {/* Online/verified indicator */}
@@ -220,7 +211,7 @@ export default function EmergencyProfilePage() {
 
                 {/* Blood Group Badge — Prominent */}
                 <div className="flex sm:flex-col items-center sm:items-end gap-4 sm:gap-2">
-                  <div className="bg-gradient-to-br from-red-600 to-red-700 text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg hover-glow-red print:shadow-none">
+                  <div className="bg-linear-to-br from-red-600 to-red-700 text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg hover-glow-red print:shadow-none">
                     <Droplets className="w-7 h-7 sm:w-8 sm:h-8" />
                     <div>
                       <p className="text-[10px] text-red-200 font-semibold tracking-wider uppercase">Blood Type</p>
@@ -255,7 +246,7 @@ export default function EmergencyProfilePage() {
         {patient.allergies.length > 0 && (
           <motion.div variants={fadeUp}>
             <Card className="overflow-hidden border-2 border-red-300 dark:border-red-800/60 print:border-red-400 print:break-inside-avoid">
-              <div className="bg-gradient-to-r from-red-100 to-rose-100 dark:from-red-950/50 dark:to-rose-950/50 px-5 py-3 flex items-center gap-2 print:bg-red-50">
+              <div className="bg-linear-to-r from-red-100 to-rose-100 dark:from-red-950/50 dark:to-rose-950/50 px-5 py-3 flex items-center gap-2 print:bg-red-50">
                 <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0">
                   <CircleAlert className="w-5 h-5" />
                 </div>
@@ -412,7 +403,7 @@ export default function EmergencyProfilePage() {
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card card-hover"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-950/40 dark:to-rose-950/40 flex items-center justify-center shrink-0">
+                    <div className="w-11 h-11 rounded-full bg-linear-to-br from-red-100 to-rose-100 dark:from-red-950/40 dark:to-rose-950/40 flex items-center justify-center shrink-0">
                       <User className="w-5 h-5 text-red-500" />
                     </div>
                     <div>
@@ -446,7 +437,7 @@ export default function EmergencyProfilePage() {
         {/* ============ INSURANCE INFO ============ */}
         <motion.div variants={fadeUp}>
           <Card className="overflow-hidden print:break-inside-avoid">
-            <div className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 px-5 py-3 flex items-center gap-2 print:bg-slate-200 print:text-slate-800">
+            <div className="bg-linear-to-r from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 px-5 py-3 flex items-center gap-2 print:bg-slate-200 print:text-slate-800">
               <CreditCard className="w-4 h-4 text-amber-400 print:text-slate-600" />
               <span className="text-white font-semibold text-sm print:text-slate-800">Insurance Information</span>
             </div>

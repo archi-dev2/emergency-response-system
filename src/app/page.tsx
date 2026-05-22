@@ -2,6 +2,8 @@
 
 import { useNavigationStore, useAuthStore } from '@/store';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
 import LandingPage from '@/components/pages/LandingPage';
 import LoginPage from '@/components/pages/LoginPage';
 import SignupPage from '@/components/pages/SignupPage';
@@ -28,7 +30,6 @@ import EmergencyProfilePage from '@/components/pages/EmergencyProfilePage';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SOSFloatingButton from '@/components/dashboard/SOSFloatingButton';
 import OnboardingFlow from '@/components/dashboard/OnboardingFlow';
-import NotificationPanel from '@/components/dashboard/NotificationPanel';
 import SearchDialog from '@/components/dashboard/SearchDialog';
 import { type PageRoute } from '@/types';
 
@@ -58,14 +59,29 @@ const pageComponents: Record<PageRoute, React.ComponentType> = {
   'emergency-profile': EmergencyProfilePage,
 };
 
+
 const publicPages: PageRoute[] = ['landing', 'login', 'signup', 'emergency-profile'];
 
-export default function Home() {
-  const { currentPage } = useNavigationStore();
+function HomeContent() {
+  const { currentPage, setCurrentPage } = useNavigationStore();
   const { isAuthenticated } = useAuthStore();
+  const searchParams = useSearchParams();
 
-  const isPublic = publicPages.includes(currentPage);
-  const PageComponent = pageComponents[currentPage] || LandingPage;
+  // Derive the page to show directly from the URL — no setState during render
+  const pageParam = searchParams.get('page') as PageRoute | null;
+  const resolvedPage: PageRoute =
+    pageParam && pageComponents[pageParam] ? pageParam : currentPage;
+
+  // Sync the Zustand store in the background (for nav highlighting etc.)
+  // This runs AFTER render, so it never causes a crash
+  useEffect(() => {
+    if (pageParam && pageComponents[pageParam] && pageParam !== currentPage) {
+      setCurrentPage(pageParam);
+    }
+  }, [pageParam, currentPage, setCurrentPage]);
+
+  const isPublic = publicPages.includes(resolvedPage);
+  const PageComponent = pageComponents[resolvedPage] || LandingPage;
 
   if (isPublic) {
     return (
@@ -105,8 +121,15 @@ export default function Home() {
       </DashboardLayout>
       <SOSFloatingButton />
       <OnboardingFlow />
-      <NotificationPanel />
       <SearchDialog />
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen bg-background animate-pulse" />}>
+      <HomeContent />
+    </Suspense>
   );
 }
