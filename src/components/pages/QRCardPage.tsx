@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -106,10 +106,14 @@ export default function QRCardPage() {
   ];
 
   // QR Code data as a URL for phone scanning
-  const qrData = useMemo(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-    return `${baseUrl}/emergency/${patient.id}`;
-  }, [patient]);
+  const [qrData, setQrData] = useState(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/emergency/${patient.id}`);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+      setQrData(`${baseUrl}/emergency/${patient.id}`);
+    }
+  }, [patient.id]);
 
   const handleDownload = async () => {
     try {
@@ -221,7 +225,7 @@ export default function QRCardPage() {
   };
 
   const handleShareLink = () => {
-    const mockUrl = `https://lifelink.app/emergency/${patient.id}`;
+    const mockUrl = qrData;
     navigator.clipboard.writeText(mockUrl).then(
       () => toast.success('Link copied!'),
       () => toast.info('Link: ' + mockUrl)

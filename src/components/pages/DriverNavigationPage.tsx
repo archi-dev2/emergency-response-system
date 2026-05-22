@@ -92,6 +92,18 @@ const ROUTE_POINTS = [
   { x: 670, y: 108 },
 ];
 
+const ROUTE_COORDS: [number, number][] = [
+  [28.5447, 77.2065],
+  [28.5467, 77.2065],
+  [28.5497, 77.2085],
+  [28.5527, 77.2095],
+  [28.5567, 77.2105],
+  [28.5607, 77.2125],
+  [28.5637, 77.2135],
+  [28.5657, 77.2145],
+  [28.5677, 77.2165],
+];
+
 /* ──────────────────────────────────────────────
    Driver Navigation Page
    ────────────────────────────────────────────── */
@@ -162,6 +174,11 @@ export default function DriverNavigationPage() {
     return ROUTE_POINTS[idx];
   }, [ambulancePosition]);
 
+  const ambulanceGeoPos = useMemo(() => {
+    const idx = Math.min(ambulancePosition, ROUTE_COORDS.length - 1);
+    return ROUTE_COORDS[idx];
+  }, [ambulancePosition]);
+
   /* Current turn */
   const currentTurn = TURN_DIRECTIONS[activeDirection];
 
@@ -215,118 +232,23 @@ export default function DriverNavigationPage() {
                   }}
                 />
 
-                {/* ──── 9. Animated Route Visualization (SVG) ──── */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 500">
-                  {/* Background roads */}
-                  <line x1="100" y1="400" x2="700" y2="100" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                  <line x1="200" y1="50" x2="200" y2="450" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                  <line x1="400" y1="80" x2="400" y2="420" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                  <line x1="50" y1="250" x2="750" y2="250" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                  <line x1="300" y1="30" x2="600" y2="470" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                  <line x1="500" y1="40" x2="500" y2="460" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-
-                  {/* Traveled route (gray, behind ambulance) */}
-                  <polyline
-                    points={ROUTE_POINTS.slice(0, ambulancePosition + 1).map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="none"
-                    stroke="rgba(100,116,139,0.5)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {/* ──── 9. Animated Route Visualization (Leaflet) ──── */}
+                <div className="absolute inset-0 w-full h-full z-0">
+                  <MapWrapper
+                    center={ambulanceGeoPos}
+                    zoom={14}
+                    route={ROUTE_COORDS}
+                    markers={[
+                      { id: 'patient', position: ROUTE_COORDS[0], type: 'patient', label: 'Patient' },
+                      { id: 'hospital', position: ROUTE_COORDS[ROUTE_COORDS.length - 1], type: 'hospital', label: 'Hospital' },
+                      { id: 'ambulance', position: ambulanceGeoPos, type: 'ambulance', label: 'Ambulance' }
+                    ]}
                   />
-
-                  {/* Remaining route (animated dashed green) */}
-                  <polyline
-                    points={ROUTE_POINTS.slice(ambulancePosition).map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="4"
-                    strokeDasharray="12 6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.5s" repeatCount="indefinite" />
-                  </polyline>
-
-                  {/* Turn markers */}
-                  {TURN_DIRECTIONS.slice(1, -1).map((turn, idx) => {
-                    const pt = ROUTE_POINTS[idx + 1];
-                    if (!pt) return null;
-                    const isPast = idx + 1 < activeDirection;
-                    const isCurrent = idx + 1 === activeDirection;
-                    return (
-                      <g key={idx}>
-                        <circle
-                          cx={pt.x}
-                          cy={pt.y}
-                          r={isCurrent ? 8 : 5}
-                          fill={isPast ? '#64748b' : isCurrent ? '#22c55e' : 'rgba(255,255,255,0.3)'}
-                          opacity={isCurrent ? 1 : 0.7}
-                        />
-                        {isCurrent && (
-                          <circle
-                            cx={pt.x}
-                            cy={pt.y}
-                            r={14}
-                            fill="none"
-                            stroke="#22c55e"
-                            strokeWidth="2"
-                            opacity="0.5"
-                          >
-                            <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
-                          </circle>
-                        )}
-                      </g>
-                    );
-                  })}
-
-                  {/* Pickup point (red pulsing) */}
-                  <circle cx={ROUTE_POINTS[0].x} cy={ROUTE_POINTS[0].y} r="12" fill="#ef4444" opacity="0.9" />
-                  <circle cx={ROUTE_POINTS[0].x} cy={ROUTE_POINTS[0].y} r="20" fill="none" stroke="#ef4444" strokeWidth="2" opacity="0.4">
-                    <animate attributeName="r" values="20;32;20" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <text x={ROUTE_POINTS[0].x} y={ROUTE_POINTS[0].y + 4} textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-                    P
-                  </text>
-
-                  {/* Hospital point (green pulsing) */}
-                  <circle cx={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} cy={ROUTE_POINTS[ROUTE_POINTS.length - 1].y} r="14" fill="#22c55e" opacity="0.9" />
-                  <circle cx={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} cy={ROUTE_POINTS[ROUTE_POINTS.length - 1].y} r="22" fill="none" stroke="#22c55e" strokeWidth="2" opacity="0.4">
-                    <animate attributeName="r" values="22;34;22" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <text x={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} y={ROUTE_POINTS[ROUTE_POINTS.length - 1].y + 5} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
-                    H
-                  </text>
-
-                  {/* ──── Animated ambulance marker ──── */}
-                  <g>
-                    {/* Glow ring */}
-                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="16" fill="rgba(56,189,248,0.15)">
-                      <animate attributeName="r" values="16;22;16" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                    {/* Ambulance dot */}
-                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="10" fill="#0ea5e9" />
-                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="10" fill="none" stroke="white" strokeWidth="2" opacity="0.5" />
-                    <text x={ambulancePos.x} y={ambulancePos.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
-                      🚑
-                    </text>
-                    {/* Wiggle animation via transform */}
-                    <animateTransform
-                      attributeName="transform"
-                      type="rotate"
-                      values={`-2 ${ambulancePos.x} ${ambulancePos.y};2 ${ambulancePos.x} ${ambulancePos.y};-2 ${ambulancePos.x} ${ambulancePos.y}`}
-                      dur="0.5s"
-                      repeatCount="indefinite"
-                    />
-                  </g>
-                </svg>
+                </div>
 
                 {/* ──── Top overlay: Patient info ──── */}
-                <div className="absolute top-3 left-3 right-3">
-                  <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none">
+                  <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10 pointer-events-auto">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -366,9 +288,9 @@ export default function DriverNavigationPage() {
                 </div>
 
                 {/* ──── Speed Indicator overlay (bottom-left) ──── */}
-                <div className="absolute bottom-3 left-3">
+                <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
                   {/* ──── 8. Speed Indicator with Gauge ──── */}
-                  <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10 w-[120px]">
+                  <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10 w-[120px] pointer-events-auto">
                     <div className="flex items-center justify-center">
                       <svg viewBox="0 0 100 60" className="w-full">
                         {/* Gauge arc background */}
@@ -409,17 +331,17 @@ export default function DriverNavigationPage() {
                 </div>
 
                 {/* ──── 7. Action Buttons overlay (bottom-right) ──── */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10 pointer-events-none">
                   <Button
                     onClick={() => toast({ title: 'Emergency Services Alerted', description: 'Additional support is on the way.' })}
-                    className="bg-red-600 hover:bg-red-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-red-500/30 text-xs"
+                    className="bg-red-600 hover:bg-red-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-red-500/30 text-xs pointer-events-auto"
                   >
                     <AlertTriangle className="h-4 w-4" />
                     Emergency
                   </Button>
                   <Button
                     onClick={handleCompleteTrip}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-emerald-500/30 text-xs"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-emerald-500/30 text-xs pointer-events-auto"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     Complete Trip
@@ -427,8 +349,8 @@ export default function DriverNavigationPage() {
                 </div>
 
                 {/* Compass indicator */}
-                <div className="absolute top-3 right-3">
-                  <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 border border-white/10">
+                <div className="absolute top-24 right-3 z-10 pointer-events-none">
+                  <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 border border-white/10 pointer-events-auto">
                     <Crosshair className="h-5 w-5 text-white/70" />
                   </div>
                 </div>

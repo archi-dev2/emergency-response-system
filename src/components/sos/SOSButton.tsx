@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface SOSButtonProps {
   onHoldComplete: () => void;

@@ -581,12 +581,12 @@ export default function SOSPage() {
               <motion.div
                 className="absolute -inset-1 rounded-full"
                 style={{
-                  background: 'conic-gradient(from var(--sos-angle, 0deg), #ef4444, #f97316, #f59e0b, #ef4444)',
+                  background: 'conic-gradient(from 0deg, #ef4444, #f97316, #f59e0b, #ef4444)',
                   filter: 'blur(1px)',
                 }}
                 animate={{
-                  '--sos-angle': [0, 360],
-                } as Record<string, number[]>}
+                  rotate: 360,
+                }}
                 transition={{
                   duration: 3,
                   repeat: Infinity,

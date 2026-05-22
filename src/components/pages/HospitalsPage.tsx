@@ -580,24 +580,39 @@ export default function HospitalsPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
+            className="h-[500px] w-full rounded-xl overflow-hidden border shadow-sm relative isolate z-0"
           >
-            <Card className="h-[500px]">
-              <CardContent className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                  <Map className="h-10 w-10 text-muted-foreground/40" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">Map View</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  Interactive map with hospital locations, directions, and real-time availability is coming soon.
-                </p>
-                <div className="flex gap-2 mt-4">
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {filteredHospitals.length} hospitals
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <MapWrapper
+              center={userLocation ? [userLocation.lat, userLocation.lng] : [REFERENCE_LAT, REFERENCE_LNG]}
+              zoom={13}
+              markers={[
+                ...(userLocation ? [{
+                  id: 'user-loc',
+                  position: [userLocation.lat, userLocation.lng] as [number, number],
+                  type: 'patient' as const,
+                  label: 'You are here',
+                  popup: <div className="text-sm p-1"><strong>Your Location</strong></div>
+                }] : []),
+                ...filteredHospitals.map(h => ({
+                id: h.id,
+                position: [h.latitude, h.longitude],
+                type: 'hospital',
+                label: h.name,
+                popup: (
+                  <div className="text-sm p-1 min-w-[180px]">
+                    <strong className="block mb-1 border-b pb-1">{h.name}</strong>
+                    <div className="flex justify-between text-xs my-1">
+                      <span className="text-muted-foreground">Distance:</span>
+                      <span className="font-semibold">{h.distanceKm} km</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Available Beds:</span>
+                      <span className="font-semibold text-emerald-600">{h.availableBeds}</span>
+                    </div>
+                  </div>
+                )
+              }))]}
+            />
           </motion.div>
         ) : (
           /* Hospital Grid */

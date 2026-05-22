@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Heart,
@@ -75,9 +76,7 @@ function parseMedication(med: string): { name: string; dosage: string; frequency
   return { name, dosage, frequency: 'Daily' };
 }
 
-// QR code data as a URL for phone scanning
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-const qrData = `${baseUrl}/emergency/${patient.id}`;
+// Note: qrData logic moved inside the component to handle dynamic window.location
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -93,6 +92,15 @@ export default function EmergencyProfilePage() {
   const { setCurrentPage } = useNavigationStore();
   const age = calculateAge(patient.dateOfBirth || '1990-01-01');
   const bloodLabel = BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS'];
+
+  const [qrData, setQrData] = useState(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/emergency/${patient.id}`);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+      setQrData(`${baseUrl}/emergency/${patient.id}`);
+    }
+  }, [patient.id]);
 
   const handlePrint = () => {
     window.print();
