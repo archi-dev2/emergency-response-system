@@ -38,6 +38,7 @@ import {
 import { DEMO_HOSPITALS } from '@/lib/mock-data';
 import { haversineDistance } from '@/lib/constants';
 import type { Hospital, HospitalWithDistance } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 import MapWrapper from '@/components/ui/MapWrapper';
 
 // ÔöÇÔöÇÔöÇ Types ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -211,6 +212,7 @@ export default function HospitalsPage() {
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'beds'>('distance');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
+  const { toast } = useToast();
 
   // Geo & fetch state
   const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
@@ -579,32 +581,22 @@ export default function HospitalsPage() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="h-[500px] overflow-hidden p-0 relative">
-              <MapWrapper 
-                center={userLocation ? [userLocation.lat, userLocation.lng] : [REFERENCE_LAT, REFERENCE_LNG]}
-                zoom={userLocation ? 13 : 12}
-                markers={[
-                  ...(userLocation ? [{
-                    id: 'user',
-                    type: 'patient' as const,
-                    position: [userLocation.lat, userLocation.lng] as [number, number],
-                    label: 'You'
-                  }] : []),
-                  ...filteredHospitals.map(h => ({
-                    id: h.id,
-                    type: 'hospital' as const,
-                    position: [h.latitude, h.longitude] as [number, number],
-                    label: h.name,
-                    popup: (
-                      <div className="text-sm text-foreground">
-                        <strong className="block mb-1 text-slate-900">{h.name}</strong>
-                        <p className="text-xs text-slate-600">{h.distanceKm} km away</p>
-                        <p className="text-xs text-emerald-600 font-semibold mt-1">{h.availableBeds} Beds Available</p>
-                      </div>
-                    )
-                  }))
-                ]}
-              />
+            <Card className="h-[500px]">
+              <CardContent className="h-full flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                  <Map className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <h3 className="text-lg font-semibold mb-1">Map View</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Interactive map with hospital locations, directions, and real-time availability is coming soon.
+                </p>
+                <div className="flex gap-2 mt-4">
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {filteredHospitals.length} hospitals
+                  </Badge>
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
         ) : (
@@ -739,7 +731,7 @@ export default function HospitalsPage() {
                             Get Directions
                           </Button>
                         </a>
-                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={() => toast({ title: 'Hospital Details', description: `Loading details for ${hospital.name}...` })}>
                           <Eye className="h-3.5 w-3.5" />
                           View Details
                         </Button>

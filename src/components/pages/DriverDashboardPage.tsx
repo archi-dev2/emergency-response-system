@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Navigation,
@@ -23,6 +23,8 @@ import {
   CircleDot,
   Signal,
   Heart,
+  Siren,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +38,8 @@ import {
   SEVERITY_LABELS,
 } from '@/lib/mock-data';
 import { STATUS_COLORS, getRelativeTime } from '@/lib/constants';
-import { useNavigationStore } from '@/store';
+import { useNavigationStore, useEmergencyStore } from '@/store';
+import { useToast } from '@/hooks/use-toast';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 
 /* ──────────────────────────────────────────────
@@ -84,7 +87,49 @@ const DRIVER_STATS = {
    ────────────────────────────────────────────── */
 export default function DriverDashboardPage() {
   const [isOnline, setIsOnline] = useState(true);
+  const [incomingCountdown, setIncomingCountdown] = useState(30);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { toast } = useToast();
+
+  // Emergency store — cross-tab sync
+  const { activeEmergency: incomingEmergency, acceptEmergency, rejectEmergency, markArrived } = useEmergencyStore();
+  const isIncoming = incomingEmergency?.status === 'WAITING_FOR_DRIVER' && isOnline;
+
+  // Countdown timer for incoming emergency
+  useEffect(() => {
+    if (isIncoming) {
+      setIncomingCountdown(30);
+      countdownRef.current = setInterval(() => {
+        setIncomingCountdown((prev) => {
+          if (prev <= 1) {
+            // Auto-decline
+            rejectEmergency();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    }
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [isIncoming, rejectEmergency]);
+
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage);
+
+  const handleAccept = useCallback(() => {
+    acceptEmergency('amb-1');
+    setCurrentPage('driver-navigation');
+  }, [acceptEmergency, setCurrentPage]);
+
+  const handleDecline = useCallback(() => {
+    rejectEmergency();
+  }, [rejectEmergency]);
 
   /* Active assignment — first EN_ROUTE or ARRIVED emergency */
   const activeAssignment = useMemo(
@@ -164,6 +209,135 @@ export default function DriverDashboardPage() {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 p-4 md:p-6 pb-12">
+      {/* ──── Incoming Emergency Popup ──── */}
+      <AnimatePresence>
+        {isIncoming && incomingEmergency && (
+          <motion.div
+            key="incoming-emergency"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          >
+            <Card className="overflow-hidden border-2 border-red-500/50 shadow-[0_0_30px_oklch(0.55_0.24_27/0.3)]">
+              <CardContent className="p-0">
+                {/* Urgent header bar */}
+                <motion.div
+                  className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-5 py-3 flex items-center justify-between"
+                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                  style={{ backgroundSize: '200% 200%' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: [0, -15, 15, -15, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 1 }}
+                    >
+                      <Siren className="h-5 w-5 text-white" />
+                    </motion.div>
+                    <span className="text-white font-bold text-sm tracking-wider uppercase">Incoming Emergency</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      className="w-2.5 h-2.5 rounded-full bg-white"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                    />
+                    <span className="text-white/90 font-mono font-bold text-lg">{incomingCountdown}s</span>
+                  </div>
+                </motion.div>
+
+                {/* Emergency details */}
+                <div className="p-5 space-y-4 bg-gradient-to-b from-red-950/20 to-transparent">
+                  {/* Patient Info */}
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-full bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center">
+                      <span className="text-red-400 font-bold text-lg">
+                        {(incomingEmergency.patientName ?? 'U').split(' ').map((n: string) => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg">{incomingEmergency.patientName ?? 'Unknown Patient'}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className={`${
+                          SEVERITY_LABELS[incomingEmergency.severity]?.bgColor ?? 'bg-red-900/30'
+                        } ${
+                          SEVERITY_LABELS[incomingEmergency.severity]?.color ?? 'text-red-400'
+                        } border-0 text-[10px] font-bold px-2`}>
+                          SEV {incomingEmergency.severity} — {SEVERITY_LABELS[incomingEmergency.severity]?.label ?? 'CRITICAL'}
+                        </Badge>
+                        {incomingEmergency.patientBloodGroup && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {BLOOD_GROUP_LABELS[incomingEmergency.patientBloodGroup] ?? incomingEmergency.patientBloodGroup}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {incomingEmergency.description && (
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+                      <p className="text-xs text-zinc-400">
+                        <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-400" />
+                        {incomingEmergency.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Location & Distance */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-red-400" />
+                      <span>New Delhi, India</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Route className="h-4 w-4 text-sky-400" />
+                      <span className="font-medium text-sky-400">~3.2 km away</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Timer className="h-4 w-4 text-amber-400" />
+                      <span>ETA ~8 min</span>
+                    </div>
+                  </div>
+
+                  {/* Countdown progress bar */}
+                  <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full"
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(incomingCountdown / 30) * 100}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleAccept}
+                      size="lg"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base py-6 shadow-lg shadow-emerald-500/20 gap-2 border-0"
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                      Accept
+                    </Button>
+                    <Button
+                      onClick={handleDecline}
+                      size="lg"
+                      variant="outline"
+                      className="flex-1 border-red-600/40 text-red-400 hover:bg-red-950/30 hover:text-red-300 font-bold text-base py-6 gap-2"
+                    >
+                      <XCircle className="h-5 w-5" />
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ──── Page Title ──── */}
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
@@ -356,11 +530,11 @@ export default function DriverDashboardPage() {
                     Navigate
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" className="gap-2" size="lg">
+                  <Button variant="outline" className="gap-2" size="lg" onClick={() => toast({ title: 'Calling Patient', description: 'Connecting...' })}>
                     <Phone className="h-4 w-4" />
                     Call Patient
                   </Button>
-                  <Button variant="outline" className="gap-2" size="lg">
+                  <Button variant="outline" className="gap-2" size="lg" onClick={() => markArrived()}>
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     Mark Arrived
                   </Button>
@@ -605,7 +779,7 @@ export default function DriverDashboardPage() {
                   <Navigation className="h-3.5 w-3.5" />
                   Navigation
                 </Button>
-                <Button variant="outline" className="gap-2 h-10 text-xs">
+                <Button variant="outline" className="gap-2 h-10 text-xs" onClick={() => toast({ title: 'Driver Support', description: 'Connecting to dispatch center...' })}>
                   <Phone className="h-3.5 w-3.5" />
                   Support
                 </Button>

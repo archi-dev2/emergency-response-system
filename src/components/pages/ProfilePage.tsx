@@ -244,7 +244,7 @@ export default function ProfilePage() {
                     {patient.name.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <button className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors">
+                <button className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors" onClick={() => toast.info('Opening image picker...')}>
                   <Camera className="h-3 w-3" />
                 </button>
               </div>
@@ -699,7 +699,7 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-3">
-            <Button variant="outline" className="w-full gap-2 justify-start">
+            <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.success('Password reset link sent to your email.')}>
               <Lock className="h-4 w-4" />
               Change Password
             </Button>

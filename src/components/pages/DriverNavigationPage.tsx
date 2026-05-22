@@ -30,7 +30,8 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { SEVERITY_LABELS, DEMO_PATIENTS, DEMO_HOSPITALS } from '@/lib/mock-data';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
-import { useNavigationStore } from '@/store';
+import { useNavigationStore, useEmergencyStore } from '@/store';
+import { useToast } from '@/hooks/use-toast';
 import MapWrapper from '@/components/ui/MapWrapper';
 
 /* ──────────────────────────────────────────────
@@ -79,17 +80,16 @@ const TURN_DIRECTIONS = [
 /* ──────────────────────────────────────────────
    SVG Route points for ambulance animation
    ────────────────────────────────────────────── */
-const ROUTE_WAYPOINTS = [
-  { lat: 28.605, lng: 77.200 },
-  { lat: 28.609, lng: 77.203 },
-  { lat: 28.613, lng: 77.207 },
-  { lat: 28.617, lng: 77.210 },
-  { lat: 28.620, lng: 77.214 },
-  { lat: 28.624, lng: 77.218 },
-  { lat: 28.628, lng: 77.222 },
-  { lat: 28.631, lng: 77.225 },
-  { lat: 28.633, lng: 77.228 },
-  { lat: 28.635, lng: 77.230 },
+const ROUTE_POINTS = [
+  { x: 120, y: 380 },
+  { x: 170, y: 330 },
+  { x: 230, y: 290 },
+  { x: 310, y: 250 },
+  { x: 400, y: 210 },
+  { x: 480, y: 175 },
+  { x: 550, y: 150 },
+  { x: 620, y: 125 },
+  { x: 670, y: 108 },
 ];
 
 /* ──────────────────────────────────────────────
@@ -100,9 +100,16 @@ export default function DriverNavigationPage() {
   const [progress, setProgress] = useState(38);
   const [speed, setSpeed] = useState(42);
   const [etaMinutes, setEtaMinutes] = useState(12);
-  const [ambulancePosition, setAmbulancePosition] = useState(0); // index along ROUTE_WAYPOINTS
+  const [ambulancePosition, setAmbulancePosition] = useState(3); // index along ROUTE_POINTS
 
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage);
+  const { markArrived, completeEmergency } = useEmergencyStore();
+  const { toast } = useToast();
+
+  const handleCompleteTrip = () => {
+    completeEmergency();
+    setCurrentPage('driver-dashboard');
+  };
 
   /* Assignment data */
   const assignment = useMemo(
@@ -141,7 +148,7 @@ export default function DriverNavigationPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setAmbulancePosition((prev) => {
-        if (prev >= ROUTE_WAYPOINTS.length - 1) return prev;
+        if (prev >= ROUTE_POINTS.length - 1) return prev;
         return prev + 1;
       });
       setActiveDirection((prev) => (prev < TURN_DIRECTIONS.length - 1 ? prev + 1 : prev));
@@ -151,8 +158,8 @@ export default function DriverNavigationPage() {
 
   /* Smooth ambulance position interpolation */
   const ambulancePos = useMemo(() => {
-    const idx = Math.min(ambulancePosition, ROUTE_WAYPOINTS.length - 1);
-    return [ROUTE_WAYPOINTS[idx].lat, ROUTE_WAYPOINTS[idx].lng] as [number, number];
+    const idx = Math.min(ambulancePosition, ROUTE_POINTS.length - 1);
+    return ROUTE_POINTS[idx];
   }, [ambulancePosition]);
 
   /* Current turn */
@@ -197,18 +204,125 @@ export default function DriverNavigationPage() {
         <div className="lg:col-span-2">
           <Card className="overflow-hidden">
             <CardContent className="p-0">
-              <div className="relative h-[400px] md:h-[500px]">
-                {/* ──── 9. Real-Time Interactive Map ──── */}
-                <MapWrapper
-                  center={ambulancePos}
-                  zoom={15}
-                  route={ROUTE_WAYPOINTS.map(w => [w.lat, w.lng] as [number, number])}
-                  markers={[
-                    { id: 'patient', type: 'patient' as const, position: [ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng], label: assignment.patient.name },
-                    { id: 'hospital', type: 'hospital' as const, position: [ROUTE_WAYPOINTS[ROUTE_WAYPOINTS.length - 1].lat, ROUTE_WAYPOINTS[ROUTE_WAYPOINTS.length - 1].lng], label: assignment.hospital.name },
-                    { id: 'ambulance', type: 'ambulance' as const, position: ambulancePos, label: 'Your Ambulance' }
-                  ]}
+              <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 h-[400px] md:h-[500px] overflow-hidden">
+                {/* Grid overlay */}
+                <div
+                  className="absolute inset-0 opacity-10"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                    backgroundSize: '40px 40px',
+                  }}
                 />
+
+                {/* ──── 9. Animated Route Visualization (SVG) ──── */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 500">
+                  {/* Background roads */}
+                  <line x1="100" y1="400" x2="700" y2="100" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+                  <line x1="200" y1="50" x2="200" y2="450" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+                  <line x1="400" y1="80" x2="400" y2="420" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+                  <line x1="50" y1="250" x2="750" y2="250" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+                  <line x1="300" y1="30" x2="600" y2="470" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+                  <line x1="500" y1="40" x2="500" y2="460" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+
+                  {/* Traveled route (gray, behind ambulance) */}
+                  <polyline
+                    points={ROUTE_POINTS.slice(0, ambulancePosition + 1).map((p) => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke="rgba(100,116,139,0.5)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Remaining route (animated dashed green) */}
+                  <polyline
+                    points={ROUTE_POINTS.slice(ambulancePosition).map((p) => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="4"
+                    strokeDasharray="12 6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.5s" repeatCount="indefinite" />
+                  </polyline>
+
+                  {/* Turn markers */}
+                  {TURN_DIRECTIONS.slice(1, -1).map((turn, idx) => {
+                    const pt = ROUTE_POINTS[idx + 1];
+                    if (!pt) return null;
+                    const isPast = idx + 1 < activeDirection;
+                    const isCurrent = idx + 1 === activeDirection;
+                    return (
+                      <g key={idx}>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isCurrent ? 8 : 5}
+                          fill={isPast ? '#64748b' : isCurrent ? '#22c55e' : 'rgba(255,255,255,0.3)'}
+                          opacity={isCurrent ? 1 : 0.7}
+                        />
+                        {isCurrent && (
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={14}
+                            fill="none"
+                            stroke="#22c55e"
+                            strokeWidth="2"
+                            opacity="0.5"
+                          >
+                            <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+                          </circle>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Pickup point (red pulsing) */}
+                  <circle cx={ROUTE_POINTS[0].x} cy={ROUTE_POINTS[0].y} r="12" fill="#ef4444" opacity="0.9" />
+                  <circle cx={ROUTE_POINTS[0].x} cy={ROUTE_POINTS[0].y} r="20" fill="none" stroke="#ef4444" strokeWidth="2" opacity="0.4">
+                    <animate attributeName="r" values="20;32;20" dur="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
+                  </circle>
+                  <text x={ROUTE_POINTS[0].x} y={ROUTE_POINTS[0].y + 4} textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
+                    P
+                  </text>
+
+                  {/* Hospital point (green pulsing) */}
+                  <circle cx={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} cy={ROUTE_POINTS[ROUTE_POINTS.length - 1].y} r="14" fill="#22c55e" opacity="0.9" />
+                  <circle cx={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} cy={ROUTE_POINTS[ROUTE_POINTS.length - 1].y} r="22" fill="none" stroke="#22c55e" strokeWidth="2" opacity="0.4">
+                    <animate attributeName="r" values="22;34;22" dur="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
+                  </circle>
+                  <text x={ROUTE_POINTS[ROUTE_POINTS.length - 1].x} y={ROUTE_POINTS[ROUTE_POINTS.length - 1].y + 5} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
+                    H
+                  </text>
+
+                  {/* ──── Animated ambulance marker ──── */}
+                  <g>
+                    {/* Glow ring */}
+                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="16" fill="rgba(56,189,248,0.15)">
+                      <animate attributeName="r" values="16;22;16" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    {/* Ambulance dot */}
+                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="10" fill="#0ea5e9" />
+                    <circle cx={ambulancePos.x} cy={ambulancePos.y} r="10" fill="none" stroke="white" strokeWidth="2" opacity="0.5" />
+                    <text x={ambulancePos.x} y={ambulancePos.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
+                      🚑
+                    </text>
+                    {/* Wiggle animation via transform */}
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      values={`-2 ${ambulancePos.x} ${ambulancePos.y};2 ${ambulancePos.x} ${ambulancePos.y};-2 ${ambulancePos.x} ${ambulancePos.y}`}
+                      dur="0.5s"
+                      repeatCount="indefinite"
+                    />
+                  </g>
+                </svg>
 
                 {/* ──── Top overlay: Patient info ──── */}
                 <div className="absolute top-3 left-3 right-3">
@@ -297,12 +411,14 @@ export default function DriverNavigationPage() {
                 {/* ──── 7. Action Buttons overlay (bottom-right) ──── */}
                 <div className="absolute bottom-3 right-3 flex items-center gap-2">
                   <Button
+                    onClick={() => toast({ title: 'Emergency Services Alerted', description: 'Additional support is on the way.' })}
                     className="bg-red-600 hover:bg-red-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-red-500/30 text-xs"
                   >
                     <AlertTriangle className="h-4 w-4" />
                     Emergency
                   </Button>
                   <Button
+                    onClick={handleCompleteTrip}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-12 rounded-full px-5 shadow-lg shadow-emerald-500/30 text-xs"
                   >
                     <CheckCircle2 className="h-4 w-4" />
@@ -469,7 +585,7 @@ export default function DriverNavigationPage() {
                     <Phone className="h-3 w-3" />
                     <span>{assignment.hospital.phone}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[10px]">
+                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[10px]" onClick={() => toast({ title: 'Calling Hospital', description: 'Connecting to emergency ward...' })}>
                     <PhoneCall className="h-3 w-3 text-emerald-500" />
                     Call Hospital
                   </Button>
@@ -487,10 +603,10 @@ export default function DriverNavigationPage() {
           {/* Quick call buttons */}
           <motion.div variants={fadeUp}>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="gap-2 h-10 text-xs">
+              <Button variant="outline" className="gap-2 h-10 text-xs" onClick={() => toast({ title: 'Calling Patient', description: 'Connecting...' })}>
                 <Phone className="h-3.5 w-3.5" /> Call Patient
               </Button>
-              <Button variant="outline" className="gap-2 h-10 text-xs">
+              <Button variant="outline" className="gap-2 h-10 text-xs" onClick={() => markArrived()}>
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Mark Arrived
               </Button>
             </div>

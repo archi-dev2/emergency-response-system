@@ -48,6 +48,7 @@ import { Separator } from '@/components/ui/separator';
 import { DEMO_PATIENTS } from '@/lib/mock-data';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import type { MedicalRecord } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -247,6 +248,7 @@ export default function MedicalRecordsPage() {
   const [docFilter, setDocFilter] = useState<string>('all');
   const [showAddMedication, setShowAddMedication] = useState(false);
   const [showAddAllergy, setShowAddAllergy] = useState(false);
+  const { toast } = useToast();
 
   const filteredDocs = docFilter === 'all'
     ? MOCK_DOCUMENTS
@@ -487,7 +489,7 @@ export default function MedicalRecordsPage() {
                 </div>
                 <p className="text-sm font-medium">Drag &amp; drop files here</p>
                 <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG up to 10MB</p>
-                <Button variant="outline" size="sm" className="mt-3">
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => toast({ title: 'Browse Files', description: 'Opening file picker...' })}>
                   Browse Files
                 </Button>
               </div>
@@ -540,11 +542,11 @@ export default function MedicalRecordsPage() {
                         </div>
                         <Separator className="my-3" />
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5">
+                          <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={() => toast({ title: 'Downloading', description: `Downloading ${doc.title}...` })}>
                             <Download className="h-3.5 w-3.5" />
                             Download
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5">
+                          <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={() => toast({ title: 'Share Document', description: 'Opening share menu...' })}>
                             <Share2 className="h-3.5 w-3.5" />
                             Share
                           </Button>
@@ -636,7 +638,7 @@ export default function MedicalRecordsPage() {
                             <Input placeholder="e.g., Twice daily" className="mt-1" />
                           </div>
                         </div>
-                        <Button size="sm" className="w-full">Add Medication</Button>
+                        <Button size="sm" className="w-full" onClick={() => { setShowAddMedication(false); toast({ title: 'Medication Added', description: 'New medication has been saved.' }); }}>Add Medication</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -736,7 +738,7 @@ export default function MedicalRecordsPage() {
                             <Input placeholder="e.g., Rash" className="mt-1" />
                           </div>
                         </div>
-                        <Button size="sm" className="w-full">Add Allergy</Button>
+                        <Button size="sm" className="w-full" onClick={() => { setShowAddAllergy(false); toast({ title: 'Allergy Added', description: 'New allergy has been saved.' }); }}>Add Allergy</Button>
                       </div>
                     </CardContent>
                   </Card>

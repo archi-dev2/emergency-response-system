@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface SOSButtonProps {
   onHoldComplete: () => void;
@@ -24,6 +23,7 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
+  const progressRef = useRef<number>(0);
   const { toast } = useToast();
 
   const resetHold = useCallback(() => {
@@ -43,11 +43,13 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
     if (isActivated) return;
     setIsHolding(true);
     setProgress(0);
+    progressRef.current = 0;
     startTimeRef.current = Date.now();
 
     animFrameRef.current = requestAnimationFrame(function tick() {
       const elapsed = Date.now() - startTimeRef.current;
       const pct = Math.min(elapsed / HOLD_DURATION, 1);
+      progressRef.current = pct;
       setProgress(pct);
       if (pct < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
@@ -56,8 +58,9 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
   }, [isActivated]);
 
   const completeHold = useCallback(() => {
-    if (progress >= 0.85) {
-      resetHold();
+    const currentProgress = progressRef.current;
+    resetHold();
+    if (currentProgress >= 0.85) {
       onHoldComplete();
     } else {
       if (progress > 0) {
@@ -67,7 +70,6 @@ export default function SOSButton({ onHoldComplete, isActivated }: SOSButtonProp
           variant: "destructive"
         });
       }
-      resetHold();
     }
   }, [progress, resetHold, onHoldComplete, toast]);
 
