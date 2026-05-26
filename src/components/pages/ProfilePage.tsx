@@ -64,7 +64,7 @@ const stagger = {
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 const BLOOD_OPTIONS = Object.entries(BLOOD_GROUP_LABELS).map(([key, label]) => ({
@@ -427,7 +427,7 @@ export default function ProfilePage() {
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Blood Group</Label>
                 {editing ? (
-                  <Select value={form.bloodGroup} onValueChange={(v) => setForm({ ...form, bloodGroup: v })}>
+                  <Select value={form.bloodGroup} onValueChange={(v) => setForm({ ...form, bloodGroup: v as any })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

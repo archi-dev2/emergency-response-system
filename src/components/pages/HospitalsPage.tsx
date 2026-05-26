@@ -52,7 +52,7 @@ const stagger = {
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // ÔöÇÔöÇÔöÇ Fallback reference point (Delhi) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -595,8 +595,8 @@ export default function HospitalsPage() {
                 }] : []),
                 ...filteredHospitals.map(h => ({
                 id: h.id,
-                position: [h.latitude, h.longitude],
-                type: 'hospital',
+                position: [h.latitude, h.longitude] as [number, number],
+                type: 'hospital' as const,
                 label: h.name,
                 popup: (
                   <div className="text-sm p-1 min-w-[180px]">

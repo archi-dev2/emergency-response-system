@@ -152,16 +152,13 @@ export default function SOSPage() {
       setCompletedSteps((prev) => new Set([...prev, 'alert']));
     }, 1600));
 
-    // Step 3 completes when driver accepts (AMBULANCE_ASSIGNED or later)
-    if (status === 'AMBULANCE_ASSIGNED' || status === 'EN_ROUTE' || status === 'ARRIVED') {
-      timers.push(setTimeout(() => {
-        setCompletedSteps((prev) => new Set([...prev, 'ambulance']));
-      }, 600));
-      // Step 4 completes shortly after ambulance is assigned
-      timers.push(setTimeout(() => {
-        setCompletedSteps((prev) => new Set([...prev, 'hospital']));
-      }, 1500));
-    }
+    // Steps 3 & 4 automatically complete so user gets redirected to Tracking
+    timers.push(setTimeout(() => {
+      setCompletedSteps((prev) => new Set([...prev, 'ambulance']));
+    }, 2400));
+    timers.push(setTimeout(() => {
+      setCompletedSteps((prev) => new Set([...prev, 'hospital']));
+    }, 3200));
 
     return () => timers.forEach(clearTimeout);
   }, [sosActivated, activeEmergency, activeEmergency?.status]);
@@ -382,7 +379,7 @@ export default function SOSPage() {
                           ? 'bg-amber-500/20 border-amber-500/50'
                           : 'bg-zinc-800/50 border-zinc-700'
                       }`}
-                      animate={done ? { scale: [0.8, 1.1, 1] } : isWaitingStep ? { scale: [1, 1.1, 1] } : {}}
+                      animate={done ? { scale: [0.8, 1] } : isWaitingStep ? { scale: [1, 1.1, 1] } : {}}
                       transition={done ? { type: 'spring', stiffness: 400, damping: 15 } : { duration: 1.5, repeat: Infinity }}
                     >
                       {done ? (
@@ -420,7 +417,7 @@ export default function SOSPage() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
                 Live Timeline
               </h3>
-              <EmergencyTimeline events={activeEmergency.timeline} />
+              <EmergencyTimeline events={activeEmergency.timeline as any} />
             </div>
           )}
 

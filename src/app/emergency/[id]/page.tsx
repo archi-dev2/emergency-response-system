@@ -26,8 +26,11 @@ function calculateAge(dob: string): number {
   return age;
 }
 
-export default function EmergencyProfileRoute({ params }: { params: { id: string } }) {
-  const patient = DEMO_PATIENTS.find((p) => p.id === params.id) ?? DEMO_PATIENTS[0];
+import { use } from 'react';
+
+export default function EmergencyProfileRoute({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const patient = DEMO_PATIENTS.find((p) => p.id === resolvedParams.id) ?? DEMO_PATIENTS[0];
   const bloodLabel = BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS'];
   const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
 
