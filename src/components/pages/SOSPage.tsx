@@ -25,6 +25,7 @@ import SOSConfirmDialog from '@/components/sos/SOSConfirmDialog';
 import CountdownTimer from '@/components/sos/CountdownTimer';
 import EmergencyTimeline from '@/components/sos/EmergencyTimeline';
 import TriageChat from '@/components/ai/TriageChat';
+import { useToast } from '@/hooks/use-toast';
 
 /* ------------------------------------------------------------------ */
 /*  Connection Steps shown after activation                           */
@@ -84,6 +85,7 @@ export default function SOSPage() {
     cancelEmergency,
   } = useEmergencyStore();
   const { setCurrentPage } = useNavigationStore();
+  const { toast } = useToast();
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -212,8 +214,13 @@ export default function SOSPage() {
 
   const handleCountdownComplete = useCallback(() => {
     setShowCountdown(false);
+    if (!navigator.onLine) {
+      toast({ title: 'Offline Fallback', description: 'Opening SMS to dispatch emergency services.', variant: 'destructive' });
+      window.location.href = "sms:108?body=Emergency SOS! Need immediate ambulance assistance.";
+      return;
+    }
     activateSOS(pendingSeverityRef.current, pendingDescriptionRef.current);
-  }, [activateSOS]);
+  }, [activateSOS, toast]);
 
   const handleCancel = useCallback(() => {
     cancelEmergency();

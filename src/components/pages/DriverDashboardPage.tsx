@@ -95,6 +95,14 @@ export default function DriverDashboardPage() {
   const { activeEmergency: incomingEmergency, acceptEmergency, rejectEmergency, markArrived } = useEmergencyStore();
   const isIncoming = incomingEmergency?.status === 'WAITING_FOR_DRIVER' && isOnline;
 
+  const prevIsIncoming = useRef(isIncoming);
+  useEffect(() => {
+    if (prevIsIncoming.current && !isIncoming && incomingEmergency === null) {
+      toast({ title: 'Emergency Cancelled', description: 'The patient has cancelled the emergency request.', variant: 'destructive' });
+    }
+    prevIsIncoming.current = isIncoming;
+  }, [isIncoming, incomingEmergency, toast]);
+
   // Countdown timer for incoming emergency
   useEffect(() => {
     if (isIncoming) {
@@ -132,13 +140,23 @@ export default function DriverDashboardPage() {
   }, [rejectEmergency]);
 
   /* Active assignment — first EN_ROUTE or ARRIVED emergency */
-  const activeAssignment = useMemo(
-    () =>
-      DEMO_EMERGENCIES.find(
-        (e) => e.status === 'EN_ROUTE' || e.status === 'AMBULANCE_ASSIGNED' || e.status === 'ARRIVED'
-      ) ?? null,
-    []
-  );
+  const activeAssignment = useMemo(() => {
+    if (incomingEmergency && incomingEmergency.status !== 'WAITING_FOR_DRIVER') {
+      return {
+        id: incomingEmergency.requestId,
+        patientId: DEMO_PATIENTS[0].id,
+        hospitalId: incomingEmergency.hospitalId || DEMO_HOSPITALS[2].id,
+        ambulanceId: incomingEmergency.ambulanceId || 'amb-1',
+        status: incomingEmergency.status as any,
+        severity: incomingEmergency.severity,
+        createdAt: incomingEmergency.startedAt,
+        timeline: incomingEmergency.timeline
+      };
+    }
+    return DEMO_EMERGENCIES.find(
+      (e) => e.status === 'EN_ROUTE' || e.status === 'AMBULANCE_ASSIGNED' || e.status === 'ARRIVED'
+    ) ?? null;
+  }, [incomingEmergency]);
 
   /* Recent (non-active) assignments */
   const recentAssignments = useMemo(
