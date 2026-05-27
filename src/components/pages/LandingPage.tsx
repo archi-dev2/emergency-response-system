@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import Hero from '@/components/landing/Hero';
 import Features from '@/components/landing/Features';
+import LiveFeed from '@/components/landing/LiveFeed';
 import HowItWorks from '@/components/landing/HowItWorks';
 import Stats from '@/components/landing/Stats';
 import Testimonials from '@/components/landing/Testimonials';
@@ -31,6 +32,7 @@ export default function LandingPage() {
         >
           <Features />
         </motion.div>
+        <LiveFeed />
         <motion.div
           initial={prefersReducedMotion ? false : 'hidden'}
           whileInView="visible"

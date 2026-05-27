@@ -178,8 +178,19 @@ export default function EnhancedStatCards() {
       className="grid grid-cols-2 lg:grid-cols-4 gap-4"
     >
       {cards.map((card) => (
-        <motion.div key={card.id} variants={fadeUp}>
-          <Card className={cn('card-hover border-l-4', card.borderColor)}>
+        <motion.div
+          key={card.id}
+          variants={fadeUp}
+          whileHover={{
+            scale: 1.04,
+            rotateX: -4,
+            rotateY: 4,
+            z: 20,
+            transition: { type: 'spring', stiffness: 400, damping: 20 },
+          }}
+          style={{ perspective: 800, transformStyle: 'preserve-3d' }}
+        >
+          <Card className={cn('card-hover border-l-4 shadow-sm hover:shadow-lg transition-shadow', card.borderColor)}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <card.icon className="h-4 w-4 text-muted-foreground" />

@@ -194,15 +194,30 @@ export default function ProfilePage() {
     return diffDays < 90;
   }, [insurance.validUntil]);
 
-  const handleSave = () => {
-    updateProfile({
+  const handleSave = async () => {
+    const updates = {
       name: form.name,
       phone: form.phone,
       bloodGroup: form.bloodGroup as 'A_POS',
       dateOfBirth: form.dateOfBirth,
       gender: form.gender,
       address: form.address,
-    });
+    };
+
+    updateProfile(updates);
+
+    if (user?.id) {
+      try {
+        await fetch(`/api/users/${user.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+      } catch {
+        // Non-fatal: local state is already updated; silently ignore network errors
+      }
+    }
+
     setEditing(false);
   };
 

@@ -43,7 +43,19 @@ const PAGE_TITLES: Record<PageRoute, string> = {
   'hospital-patients': 'Patient Intake',
   'driver-dashboard': 'My Assignments',
   'driver-navigation': 'Navigation',
+  'driver-earnings': 'Earnings',
+  'driver-history': 'Trip History',
+  'driver-vehicle': 'My Vehicle',
+  'hospital-doctors': 'Doctors',
+  'hospital-pharmacy': 'Pharmacy',
+  'hospital-analytics': 'Hospital Analytics',
+  'admin-analytics': 'Analytics',
+  'admin-settings': 'System Settings',
+  'admin-reports': 'Reports',
+  'doctor-appointments': 'Book Appointment',
+  'help': 'Help Center',
   'emergency-profile': 'Emergency Profile',
+  'ai-chat': 'AI Medical Assistant',
 };
 
 const AVATAR_COLORS = [

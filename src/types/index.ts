@@ -31,7 +31,19 @@ export type PageRoute =
   | 'hospital-patients'
   | 'driver-dashboard'
   | 'driver-navigation'
-  | 'emergency-profile';
+  | 'driver-earnings'
+  | 'driver-history'
+  | 'driver-vehicle'
+  | 'hospital-doctors'
+  | 'hospital-pharmacy'
+  | 'hospital-analytics'
+  | 'admin-analytics'
+  | 'admin-settings'
+  | 'admin-reports'
+  | 'doctor-appointments'
+  | 'help'
+  | 'emergency-profile'
+  | 'ai-chat';
 
 export interface User {
   id: string;

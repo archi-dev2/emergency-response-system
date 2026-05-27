@@ -41,6 +41,7 @@ import { STATUS_COLORS, getRelativeTime } from '@/lib/constants';
 import { useNavigationStore, useEmergencyStore } from '@/store';
 import { useToast } from '@/hooks/use-toast';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
+import DashboardHero from '@/components/dashboard/DashboardHero';
 
 /* ──────────────────────────────────────────────
    Animation variants
@@ -356,17 +357,22 @@ export default function DriverDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ──── Page Title ──── */}
-      <motion.div variants={fadeUp} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Driver Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage your assignments and track performance</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Signal className="h-4 w-4" />
-          <span>{new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-        </div>
-      </motion.div>
+      {/* ──── Hero Header ──── */}
+      <DashboardHero
+        greeting="On Duty"
+        name="Rajesh Kumar"
+        subtitle={`${isOnline ? '🟢 Online · Ready for dispatch' : '🔴 Offline · Go online to accept emergencies'} · ${new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' })}`}
+        gradient="linear-gradient(135deg, #431407 0%, #c2410c 50%, #0f172a 100%)"
+        accentColor="rgba(249,115,22,0.35)"
+        icon={<Ambulance className="w-6 h-6 text-orange-300" />}
+        badge="Ambulance Driver"
+        stats={[
+          { value: String(DRIVER_STATS.todayTrips), label: "Today's trips" },
+          { value: `${DRIVER_STATS.totalDistance} km`, label: 'Distance covered' },
+          { value: DRIVER_STATS.avgResponseTime, label: 'Avg response' },
+          { value: String(DRIVER_STATS.rating), label: 'Rating ⭐' },
+        ]}
+      />
 
       {/* ──── 1. Header Card: Driver Profile ──── */}
       <motion.div variants={fadeUp}>
@@ -452,23 +458,35 @@ export default function DriverDashboardPage() {
             iconBg: 'bg-amber-100 dark:bg-amber-900/40 text-amber-500',
           },
         ].map((stat) => (
-          <Card key={stat.label} className="card-hover">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${stat.iconBg}`}>
-                  {stat.icon}
+          <motion.div
+            key={stat.label}
+            whileHover={{
+              scale: 1.05,
+              rotateX: -4,
+              rotateY: 4,
+              z: 20,
+              transition: { type: 'spring', stiffness: 400, damping: 20 },
+            }}
+            style={{ perspective: 800, transformStyle: 'preserve-3d' }}
+          >
+            <Card className="card-hover shadow-sm hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${stat.iconBg}`}>
+                    {stat.icon}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    {trendIcon(stat.trend)}
+                    {stat.trend}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  {trendIcon(stat.trend)}
-                  {stat.trend}
+                <div className="mt-3">
+                  <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
                 </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </motion.div>
 

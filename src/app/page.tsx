@@ -27,10 +27,19 @@ import HospitalPatientsPage from '@/components/pages/HospitalPatientsPage';
 import DriverDashboardPage from '@/components/pages/DriverDashboardPage';
 import DriverNavigationPage from '@/components/pages/DriverNavigationPage';
 import EmergencyProfilePage from '@/components/pages/EmergencyProfilePage';
+import AIChatPage from '@/components/pages/AIChatPage';
+import DriverEarningsPage from '@/components/pages/DriverEarningsPage';
+import DriverHistoryPage from '@/components/pages/DriverHistoryPage';
+import DriverVehiclePage from '@/components/pages/DriverVehiclePage';
+import HospitalDoctorsPage from '@/components/pages/HospitalDoctorsPage';
+import HospitalPharmacyPage from '@/components/pages/HospitalPharmacyPage';
+import HospitalAnalyticsPage from '@/components/pages/HospitalAnalyticsPage';
+import AdminAnalyticsPage from '@/components/pages/AdminAnalyticsPage';
+import AdminSettingsPage from '@/components/pages/AdminSettingsPage';
+import AdminReportsPage from '@/components/pages/AdminReportsPage';
+import DoctorAppointmentsPage from '@/components/pages/DoctorAppointmentsPage';
+import HelpPage from '@/components/pages/HelpPage';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import SOSFloatingButton from '@/components/dashboard/SOSFloatingButton';
-import OnboardingFlow from '@/components/dashboard/OnboardingFlow';
-import SearchDialog from '@/components/dashboard/SearchDialog';
 import { type PageRoute } from '@/types';
 
 const pageComponents: Record<PageRoute, React.ComponentType> = {
@@ -56,7 +65,19 @@ const pageComponents: Record<PageRoute, React.ComponentType> = {
   'hospital-patients': HospitalPatientsPage,
   'driver-dashboard': DriverDashboardPage,
   'driver-navigation': DriverNavigationPage,
+  'driver-earnings': DriverEarningsPage,
+  'driver-history': DriverHistoryPage,
+  'driver-vehicle': DriverVehiclePage,
+  'hospital-doctors': HospitalDoctorsPage,
+  'hospital-pharmacy': HospitalPharmacyPage,
+  'hospital-analytics': HospitalAnalyticsPage,
+  'admin-analytics': AdminAnalyticsPage,
+  'admin-settings': AdminSettingsPage,
+  'admin-reports': AdminReportsPage,
+  'doctor-appointments': DoctorAppointmentsPage,
+  'help': HelpPage,
   'emergency-profile': EmergencyProfilePage,
+  'ai-chat': AIChatPage,
 };
 
 
@@ -103,26 +124,22 @@ function HomeContent() {
     return <LoginPage />;
   }
 
+  // DashboardLayout already contains SOSFloatingButton, OnboardingFlow, MedicalChatbot, SOSAlertBanner
   return (
-    <>
-      <DashboardLayout>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentPage}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="h-full"
-          >
-            <PageComponent />
-          </motion.div>
-        </AnimatePresence>
-      </DashboardLayout>
-      <SOSFloatingButton />
-      <OnboardingFlow />
-      <SearchDialog />
-    </>
+    <DashboardLayout>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentPage}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          className="h-full"
+        >
+          <PageComponent />
+        </motion.div>
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }
 

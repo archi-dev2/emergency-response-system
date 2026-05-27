@@ -20,11 +20,22 @@ import {
   BarChart3,
   Users,
   Truck,
+  Bot,
   LogOut,
   ChevronsLeft,
   ChevronsRight,
   Heart,
   Activity,
+  IndianRupee,
+  History,
+  Car,
+  Stethoscope,
+  Pill,
+  TrendingUp,
+  FileBarChart,
+  Settings,
+  Calendar,
+  HelpCircle,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -52,6 +63,17 @@ const ICON_MAP: Record<string, React.ElementType> = {
   BarChart3,
   Users,
   Truck,
+  Bot,
+  IndianRupee,
+  History,
+  Car,
+  Stethoscope,
+  Pill,
+  TrendingUp,
+  FileBarChart,
+  Settings,
+  Calendar,
+  HelpCircle,
 };
 
 const ROLE_COLORS: Record<Role, { bg: string; text: string; dot: string }> = {

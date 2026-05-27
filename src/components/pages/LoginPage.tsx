@@ -113,6 +113,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState(DEMO_PASSWORD);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
@@ -121,8 +122,8 @@ export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage);
 
-  const performLogin = (loginEmail: string, loginPassword: string) => {
-    const success = login(loginEmail, loginPassword);
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
+    const success = await login(loginEmail, loginPassword);
     if (success) {
       const user = useAuthStore.getState().user;
       if (user) {
@@ -137,6 +138,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
 
     if (!email.trim()) {
       toast.error('Please enter your email address');
@@ -149,13 +151,11 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    const success = performLogin(email, password);
+    const success = await performLogin(email, password);
 
     if (!success) {
-      toast.error('Invalid credentials. Please try a demo account below.');
+      setLoginError('Invalid email or password');
+      toast.error('Invalid email or password');
     }
 
     setIsLoading(false);
@@ -164,14 +164,13 @@ export default function LoginPage() {
   const handleDemoClick = async (demoEmail: string) => {
     setEmail(demoEmail);
     setPassword(DEMO_PASSWORD);
+    setLoginError('');
     setIsLoading(true);
 
-    // Small delay for visual feedback
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const success = performLogin(demoEmail, DEMO_PASSWORD);
+    const success = await performLogin(demoEmail, DEMO_PASSWORD);
 
     if (!success) {
+      setLoginError('Invalid email or password');
       toast.error('Login failed. Please try again.');
     }
 
@@ -440,6 +439,11 @@ export default function LoginPage() {
                 Remember me for 30 days
               </Label>
             </div>
+
+            {/* Login error */}
+            {loginError && (
+              <p className="text-sm text-destructive text-center">{loginError}</p>
+            )}
 
             {/* Submit */}
             <Button

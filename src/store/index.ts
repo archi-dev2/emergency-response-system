@@ -3,7 +3,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { PageRoute, User } from '@/types';
-import { MOCK_USERS } from '@/lib/mock-data';
 
 interface NavigationState {
   currentPage: PageRoute;
@@ -51,7 +50,8 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  loginWithUser: (user: User) => void;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
 }
@@ -62,14 +62,27 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
-      login: (email: string, _password: string) => {
-        const user = MOCK_USERS.find((u: User) => u.email === email);
-        if (user) {
-          set({ user, isAuthenticated: true });
+      login: async (email: string, password: string) => {
+        set({ isLoading: true });
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+          if (!res.ok) {
+            set({ isLoading: false });
+            return false;
+          }
+          const user = await res.json();
+          set({ user, isAuthenticated: true, isLoading: false });
           return true;
+        } catch {
+          set({ isLoading: false });
+          return false;
         }
-        return false;
       },
+      loginWithUser: (user: User) => set({ user, isAuthenticated: true }),
       logout: () => set({ user: null, isAuthenticated: false }),
       updateProfile: (updates) => {
         const { user } = get();
@@ -161,8 +174,8 @@ export const useEmergencyStore = create<EmergencyState>()(
             patientLatitude: lat,
             patientLongitude: lng,
             timeline: [
-              { id: '1', requestId, event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
-              { id: '2', requestId, event: 'Alert Broadcast', description: 'Notifying nearby drivers...', timestamp: now },
+              { id: '1', event: 'SOS Triggered', description: `Severity Level ${severity}`, timestamp: now },
+              { id: '2', event: 'Alert Broadcast', description: 'Notifying nearby drivers...', timestamp: now },
             ],
             startedAt: now,
           },
@@ -231,7 +244,7 @@ export const useEmergencyStore = create<EmergencyState>()(
               ...activeEmergency,
               timeline: [
                 ...activeEmergency.timeline,
-                { id: `${activeEmergency.timeline.length + 1}`, requestId: activeEmergency.requestId, event, description, timestamp: new Date().toISOString() },
+                { id: `${activeEmergency.timeline.length + 1}`, event, description, timestamp: new Date().toISOString() },
               ],
             },
           });

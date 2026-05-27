@@ -21,6 +21,8 @@ import { getRelativeTime, BLOOD_GROUP_LABELS } from '@/lib/constants';
 import EnhancedStatCards from '@/components/dashboard/EnhancedStatCards';
 import QuickActionButtons from '@/components/dashboard/QuickActionButtons';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import EmergencyReadiness from '@/components/dashboard/EmergencyReadiness';
+import DashboardHero from '@/components/dashboard/DashboardHero';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -46,13 +48,22 @@ export default function PatientDashboard() {
       animate="show"
       className="space-y-6 p-4 md:p-6"
     >
-      {/* Header */}
-      <motion.div variants={fadeUp}>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Welcome back, {user?.name?.split(' ')[0] || patient.name.split(' ')[0]}
-        </h1>
-        <p className="text-muted-foreground mt-1">Here&apos;s your health overview</p>
-      </motion.div>
+      {/* Hero Header */}
+      <DashboardHero
+        greeting="Welcome back"
+        name={user?.name?.split(' ')[0] || patient.name.split(' ')[0]}
+        subtitle="Your health overview · Everything is up to date"
+        gradient="linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0f172a 100%)"
+        accentColor="rgba(16,185,129,0.3)"
+        icon={<Heart className="w-6 h-6 text-emerald-300" fill="currentColor" />}
+        badge="Patient Portal"
+        stats={[
+          { value: '98%', label: 'Profile complete' },
+          { value: '3.8 min', label: 'Last response' },
+          { value: '2', label: 'Active contacts' },
+          { value: 'O+', label: 'Blood group' },
+        ]}
+      />
 
       {/* Enhanced Stat Cards */}
       <EnhancedStatCards />
@@ -164,6 +175,15 @@ export default function PatientDashboard() {
                 >
                   View Full Records <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Emergency Readiness */}
+          <motion.div variants={fadeUp}>
+            <Card className="card-hover">
+              <CardContent className="p-4">
+                <EmergencyReadiness />
               </CardContent>
             </Card>
           </motion.div>

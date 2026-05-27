@@ -7,6 +7,8 @@ import MobileSidebar from '@/components/layout/MobileSidebar';
 import Topbar from '@/components/layout/Topbar';
 import SOSFloatingButton from '@/components/dashboard/SOSFloatingButton';
 import OnboardingFlow from '@/components/dashboard/OnboardingFlow';
+import SOSAlertBanner from '@/components/dashboard/SOSAlertBanner';
+import MedicalChatbot from '@/components/ai/MedicalChatbot';
 import { useNavigationStore } from '@/store';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -22,6 +24,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global SOS Alert Banner */}
+      <SOSAlertBanner />
+
+      {/* Global AI Medical Chatbot */}
+      <MedicalChatbot />
+
       {/* Onboarding overlay */}
       <OnboardingFlow />
 
