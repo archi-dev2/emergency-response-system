@@ -24,8 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useNavigationStore } from '@/store';
-import { DEMO_PATIENTS } from '@/lib/mock-data';
+import { useNavigationStore, useAuthStore } from '@/store';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import { toast } from 'sonner';
 
@@ -92,7 +91,7 @@ function LifeLinkShieldIcon({ size = 20, color = '#fff' }: { size?: number; colo
 
 export default function QRCardPage() {
   const { setCurrentPage } = useNavigationStore();
-  const patient = DEMO_PATIENTS[0];
+  const user = useAuthStore((s) => s.user);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardVariant, setCardVariant] = useState<CardVariant>('blue');
@@ -100,20 +99,19 @@ export default function QRCardPage() {
 
   const variant = CARD_VARIANTS[cardVariant];
 
-  const allergyData = [
-    { name: 'Penicillin', severity: 'Severe' },
-    { name: 'Sulfa Drugs', severity: 'Moderate' },
-  ];
+  const allergies = Array.isArray(user?.allergies) ? user.allergies : [];
+  const medications = Array.isArray(user?.currentMedications) ? user.currentMedications : [];
+  const emergencyContacts = user?.emergencyContacts ?? [];
 
   // QR Code data as a URL for phone scanning
-  const [qrData, setQrData] = useState(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/emergency/${patient.id}`);
+  const [qrData, setQrData] = useState(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/emergency/${user?.id ?? 'unknown'}`);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && user?.id) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-      setQrData(`${baseUrl}/emergency/${patient.id}`);
+      setQrData(`${baseUrl}/emergency/${user.id}`);
     }
-  }, [patient.id]);
+  }, [user?.id]);
 
   const handleDownload = async () => {
     try {
@@ -196,14 +194,15 @@ export default function QRCardPage() {
           // Footer
           ctx.fillStyle = 'rgba(255,255,255,0.4)';
           ctx.font = '11px Inter, system-ui, sans-serif';
-          const shortId = `ID: ${patient.id.slice(0, 4)}••••••••${patient.id.slice(-4)}`;
+          const uid = user?.id ?? '';
+          const shortId = uid ? `ID: ${uid.slice(0, 4)}••••••••${uid.slice(-4)}` : '';
           ctx.fillText(shortId, 40, height - 30);
           ctx.fillText('LifeLink Emergency Card', width - 200, height - 30);
 
           canvas.toBlob((blob) => {
             if (blob) {
               const link = document.createElement('a');
-              link.download = `lifelink-qr-${patient.id}.png`;
+              link.download = `lifelink-qr-${user?.id ?? 'card'}.png`;
               link.href = URL.createObjectURL(blob);
               link.click();
               URL.revokeObjectURL(link.href);
@@ -307,14 +306,14 @@ export default function QRCardPage() {
                     <div className="relative z-10 space-y-3">
                       <div>
                         <p className="text-xs opacity-60">Patient Name</p>
-                        <p className="text-lg font-bold">{patient.name}</p>
+                        <p className="text-lg font-bold">{user?.name ?? 'Unknown'}</p>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs opacity-60 mb-1">Blood Group</p>
                           <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                            <p className="text-2xl font-bold">{BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS']}</p>
+                            <p className="text-2xl font-bold">{BLOOD_GROUP_LABELS[(user?.bloodGroup as string) || 'O_POS']}</p>
                           </div>
                         </div>
                         {/* Real QR Code */}
@@ -339,7 +338,7 @@ export default function QRCardPage() {
                     </div>
 
                     <div className="relative z-10 flex items-center justify-between">
-                      <p className="text-[10px] opacity-50">ID: {patient.id.slice(0, 4)}••••••••{patient.id.slice(-4)}</p>
+                      <p className="text-[10px] opacity-50">{user?.id ? `ID: ${user.id.slice(0, 4)}••••••••${user.id.slice(-4)}` : ''}</p>
                       <p className="text-[10px] opacity-50">Tap to flip</p>
                     </div>
                   </div>
@@ -359,7 +358,7 @@ export default function QRCardPage() {
 
                     <div className="relative z-10 space-y-3">
                       <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">Emergency Contacts</p>
-                      {patient.emergencyContacts.map((c) => (
+                      {emergencyContacts.map((c) => (
                         <div key={c.id} className="flex items-center gap-2 text-sm">
                           <Phone className="h-3.5 w-3.5 opacity-70" />
                           <div>
@@ -422,16 +421,16 @@ export default function QRCardPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <span className="text-muted-foreground">Patient ID</span>
-                    <span className="font-mono text-xs">{patient.id.slice(0, 4)}••••••••{patient.id.slice(-4)}</span>
+                    <span className="font-mono text-xs">{user?.id ? `${user.id.slice(0, 4)}••••••••${user.id.slice(-4)}` : '—'}</span>
                   </div>
                   <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <span className="text-muted-foreground">Full Name</span>
-                    <span className="font-medium">{patient.name}</span>
+                    <span className="font-medium">{user?.name ?? '—'}</span>
                   </div>
                   <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <span className="text-muted-foreground">Blood Group</span>
                     <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                      {BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS']}
+                      {BLOOD_GROUP_LABELS[(user?.bloodGroup as string) || 'O_POS']}
                     </Badge>
                   </div>
 
@@ -442,12 +441,9 @@ export default function QRCardPage() {
                       <Bug className="h-3 w-3" /> Allergies
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {allergyData.map((a) => (
-                        <Badge key={a.name} variant="outline" className="text-xs">
-                          {a.name}
-                          <span className="text-[10px] opacity-50 ml-1">({a.severity})</span>
-                        </Badge>
-                      ))}
+                      {allergies.length > 0 ? allergies.map((a) => (
+                        <Badge key={a} variant="outline" className="text-xs">{a}</Badge>
+                      )) : <span className="text-xs text-muted-foreground">None listed</span>}
                     </div>
                   </div>
 
@@ -456,9 +452,9 @@ export default function QRCardPage() {
                       <Pill className="h-3 w-3" /> Medications
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {patient.currentMedications.map((m) => (
+                      {medications.length > 0 ? medications.map((m) => (
                         <Badge key={m} variant="outline" className="text-xs">{m}</Badge>
-                      ))}
+                      )) : <span className="text-xs text-muted-foreground">None listed</span>}
                     </div>
                   </div>
 
@@ -467,7 +463,7 @@ export default function QRCardPage() {
                       <Phone className="h-3 w-3" /> Emergency Contacts
                     </p>
                     <div className="space-y-1">
-                      {patient.emergencyContacts.map((c) => (
+                      {emergencyContacts.map((c) => (
                         <div key={c.id} className="text-xs flex items-center gap-2">
                           <span className="font-medium">{c.name}</span>
                           <span className="text-muted-foreground">({c.relationship})</span>

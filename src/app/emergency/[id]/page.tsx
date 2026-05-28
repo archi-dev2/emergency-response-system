@@ -1,11 +1,33 @@
 'use client';
 
+import { use, useEffect, useState } from 'react';
 import {
   Heart, Droplets, Phone, User, ShieldAlert, AlertTriangle,
-  Pill, Activity, CreditCard,
+  Pill, Activity, CreditCard, Loader2,
 } from 'lucide-react';
-import { DEMO_PATIENTS } from '@/lib/mock-data';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
+
+interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+interface PatientData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  bloodGroup?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  allergies: string[];
+  currentMedications: string[];
+  chronicConditions: string[];
+  emergencyContacts: EmergencyContact[];
+}
 
 const MOCK_EXTENDED = {
   height: '175 cm',
@@ -26,12 +48,56 @@ function calculateAge(dob: string): number {
   return age;
 }
 
-import { use } from 'react';
-
 export default function EmergencyProfileRoute({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const patient = DEMO_PATIENTS.find((p) => p.id === resolvedParams.id) ?? DEMO_PATIENTS[0];
-  const bloodLabel = BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS'];
+  const [patient, setPatient] = useState<PatientData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/users/${resolvedParams.id}`)
+      .then((r) => {
+        if (!r.ok) { setNotFound(true); setLoading(false); return null; }
+        return r.json();
+      })
+      .then((data) => {
+        if (!data) return;
+        setPatient({
+          ...data,
+          allergies: Array.isArray(data.allergies) ? data.allergies : [],
+          currentMedications: Array.isArray(data.currentMedications) ? data.currentMedications : [],
+          chronicConditions: Array.isArray(data.chronicConditions) ? data.chronicConditions : [],
+          emergencyContacts: data.emergencyContacts ?? [],
+        });
+        setLoading(false);
+      })
+      .catch(() => { setNotFound(true); setLoading(false); });
+  }, [resolvedParams.id]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Loader2 style={{ width: 40, height: 40, color: '#dc2626', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: '#6b7280', fontSize: 16 }}>Loading emergency profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !patient) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+        <div style={{ textAlign: 'center', padding: 24 }}>
+          <ShieldAlert style={{ width: 48, height: 48, color: '#dc2626', margin: '0 auto 16px' }} />
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Profile Not Found</h1>
+          <p style={{ color: '#6b7280', fontSize: 15 }}>This emergency QR code may be invalid or the patient profile has been removed.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const bloodLabel = BLOOD_GROUP_LABELS[(patient.bloodGroup as string) || 'O_POS'];
   const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
 
   return (
@@ -46,7 +112,6 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
 
       {/* ══ HEADER ══ */}
       <div style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', padding: '20px 20px 24px' }}>
-        {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: '8px 10px', display: 'flex', alignItems: 'center' }}>
@@ -59,19 +124,11 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
           </span>
         </div>
 
-        {/* Blood type + Name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div style={{
-            background: 'rgba(0,0,0,0.25)',
-            borderRadius: 20,
-            width: 112,
-            height: 112,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            border: '2.5px solid rgba(255,255,255,0.35)',
+            background: 'rgba(0,0,0,0.25)', borderRadius: 20, width: 112, height: 112,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, border: '2.5px solid rgba(255,255,255,0.35)',
           }}>
             <Droplets style={{ width: 24, height: 24, color: 'rgba(255,255,255,0.85)', marginBottom: 2 }} />
             <span style={{ color: '#fff', fontSize: 40, fontWeight: 900, lineHeight: 1 }}>{bloodLabel}</span>
@@ -100,10 +157,7 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
       </div>
 
       {/* ══ QUICK STATS ══ */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        background: '#fff', borderBottom: '1px solid #e5e7eb',
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
         {[
           { label: 'Age', value: age ? `${age}y` : 'N/A' },
           { label: 'Height', value: MOCK_EXTENDED.height },
@@ -138,7 +192,7 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
         )}
 
         {/* Chronic Conditions */}
-        {patient.chronicConditions && patient.chronicConditions.length > 0 && (
+        {patient.chronicConditions.length > 0 && (
           <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
             <div style={{ background: '#fff7ed', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #fed7aa' }}>
               <Activity style={{ width: 19, height: 19, color: '#ea580c', flexShrink: 0 }} />
@@ -155,7 +209,7 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
         )}
 
         {/* Medications */}
-        {patient.currentMedications && patient.currentMedications.length > 0 && (
+        {patient.currentMedications.length > 0 && (
           <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
             <div style={{ background: '#eff6ff', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #bfdbfe' }}>
               <Pill style={{ width: 19, height: 19, color: '#2563eb', flexShrink: 0 }} />
@@ -196,15 +250,12 @@ export default function EmergencyProfileRoute({ params }: { params: Promise<{ id
                       <p style={{ fontSize: 16, color: '#6b7280' }}>{c.phone}</p>
                     </div>
                   </div>
-                  <a
-                    href={c.phone ? `tel:${c.phone}` : undefined}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                      background: '#16a34a', color: '#fff', fontSize: 17, fontWeight: 700,
-                      padding: '12px 20px', borderRadius: 28, textDecoration: 'none',
-                      flexShrink: 0, minWidth: 90, minHeight: 48,
-                    }}
-                  >
+                  <a href={`tel:${c.phone}`} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    background: '#16a34a', color: '#fff', fontSize: 17, fontWeight: 700,
+                    padding: '12px 20px', borderRadius: 28, textDecoration: 'none',
+                    flexShrink: 0, minWidth: 90, minHeight: 48,
+                  }}>
                     <Phone style={{ width: 16, height: 16 }} />
                     Call
                   </a>
