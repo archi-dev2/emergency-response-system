@@ -279,6 +279,76 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// ─── Live Feed Store ─────────────────────────────────────────────────────────
+
+export interface BookingRequest {
+  id: string;
+  bookingId: string;
+  patientName: string;
+  patientEmail: string;
+  doctorId: string;
+  doctorName: string;
+  specialty: string;
+  hospital: string;
+  date: string;
+  time: string;
+  type: 'video' | 'in-person';
+  fee: number;
+  reason: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
+export interface PharmacyOrder {
+  id: string;
+  orderId: string;
+  patientEmail: string;
+  patientName: string;
+  items: { name: string; qty: number; price: number }[];
+  total: number;
+  address: string;
+  status: 'placed' | 'confirmed' | 'preparing' | 'shipped' | 'out-for-delivery' | 'delivered';
+  createdAt: string;
+  estimatedDelivery: string;
+  deliveryLat: number;
+  deliveryLng: number;
+}
+
+interface LiveFeedState {
+  bookingRequests: BookingRequest[];
+  pharmacyOrders: PharmacyOrder[];
+  addBookingRequest: (req: Omit<BookingRequest, 'id' | 'status' | 'createdAt'>) => void;
+  updateBookingStatus: (id: string, status: 'accepted' | 'rejected') => void;
+  addPharmacyOrder: (order: Omit<PharmacyOrder, 'id'>) => void;
+  updateOrderStatus: (orderId: string, status: PharmacyOrder['status']) => void;
+}
+
+export const useLiveFeedStore = create<LiveFeedState>((set) => ({
+  bookingRequests: [],
+  pharmacyOrders: [],
+  addBookingRequest: (req) =>
+    set((s) => ({
+      bookingRequests: [{
+        id: Date.now().toString(),
+        ...req,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      }, ...s.bookingRequests],
+    })),
+  updateBookingStatus: (id, status) =>
+    set((s) => ({
+      bookingRequests: s.bookingRequests.map((r) => r.id === id ? { ...r, status } : r),
+    })),
+  addPharmacyOrder: (order) =>
+    set((s) => ({
+      pharmacyOrders: [{ id: Date.now().toString(), ...order }, ...s.pharmacyOrders],
+    })),
+  updateOrderStatus: (orderId, status) =>
+    set((s) => ({
+      pharmacyOrders: s.pharmacyOrders.map((o) => o.orderId === orderId ? { ...o, status } : o),
+    })),
+}));
+
 // UI Store
 interface UIState {
   theme: 'light' | 'dark' | 'system';
@@ -287,6 +357,7 @@ interface UIState {
   unreadCount: number;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  addNotification: (notification: { title: string; message: string; type: string }) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
 }
@@ -312,6 +383,11 @@ export const useUIStore = create<UIState>((set) => ({
       notifications: s.notifications.map((n) => ({ ...n, isRead: true })),
       unreadCount: 0,
     })),
+  addNotification: (notification) =>
+    set((s) => {
+      const n = { id: Date.now().toString(), ...notification, isRead: false, createdAt: new Date().toISOString() };
+      return { notifications: [n, ...s.notifications], unreadCount: s.unreadCount + 1 };
+    }),
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
 }));

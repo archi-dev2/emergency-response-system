@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck,
   Fuel,
@@ -22,10 +23,18 @@ import {
   ChevronRight,
   Timer,
   BadgeCheck,
+  Edit2,
+  X,
+  Save,
+  Plus,
+  AlertCircle,
+  Send,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 /* ─────────────────────────────────────────
    Animation variants
@@ -137,9 +146,50 @@ function iconBg(status: HealthItem['status']) {
    Page
 ───────────────────────────────────────── */
 export default function DriverVehiclePage() {
-  const warningCount = HEALTH_ITEMS.filter((h) => h.status === 'warning' || h.status === 'critical').length;
+  const [checklist, setChecklist] = useState(CHECKLIST.map((c, i) => ({ ...c, id: i })));
+  const [healthItems, setHealthItems] = useState(HEALTH_ITEMS);
+  const [odometer, setOdometer] = useState('78,420');
+  const [editOdometer, setEditOdometer] = useState(false);
+  const [odoInput, setOdoInput] = useState('78420');
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [serviceForm, setServiceForm] = useState({ type: '', description: '', urgency: 'normal' as 'low' | 'normal' | 'urgent' });
+  const [issueForm, setIssueForm] = useState({ system: '', description: '', severity: 'warning' as 'warning' | 'critical' });
+
+  const warningCount = healthItems.filter((h) => h.status === 'warning' || h.status === 'critical').length;
+
+  const toggleCheckItem = (id: number) => {
+    setChecklist((prev) => prev.map((c) => c.id === id ? { ...c, ok: !c.ok } : c));
+    const item = checklist.find((c) => c.id === id);
+    if (item) toast.success(item.ok ? 'Item marked as failed' : 'Item marked as passed', { description: item.label });
+  };
+
+  const saveOdometer = () => {
+    const val = parseInt(odoInput.replace(/,/g, ''));
+    if (!isNaN(val) && val > 0) {
+      setOdometer(val.toLocaleString('en-IN'));
+      toast.success('Odometer updated', { description: `${val.toLocaleString('en-IN')} km` });
+    }
+    setEditOdometer(false);
+  };
+
+  const submitServiceRequest = () => {
+    if (!serviceForm.type.trim()) return;
+    toast.success('Service request submitted', { description: `${serviceForm.type} — ${serviceForm.urgency} priority` });
+    setShowServiceModal(false);
+    setServiceForm({ type: '', description: '', urgency: 'normal' });
+  };
+
+  const reportIssue = () => {
+    if (!issueForm.system.trim() || !issueForm.description.trim()) return;
+    setHealthItems((prev) => prev.map((h) => h.label === issueForm.system ? { ...h, status: issueForm.severity, value: issueForm.severity === 'critical' ? 'Critical' : 'Warning', detail: issueForm.description } : h));
+    toast.error('Issue reported', { description: `${issueForm.system}: ${issueForm.description}` });
+    setShowIssueModal(false);
+    setIssueForm({ system: '', description: '', severity: 'warning' });
+  };
 
   return (
+    <>
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 p-4 md:p-6 pb-12">
 
       {/* ── Page Header ── */}
@@ -178,8 +228,23 @@ export default function DriverVehiclePage() {
                 <p className="text-muted-foreground text-sm">Tata Winger Ambulance · 2022 · White</p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                  {/* Odometer — editable */}
+                  <div className="bg-muted/50 rounded-lg p-2.5 group">
+                    <div className="flex items-center justify-between text-muted-foreground mb-0.5">
+                      <div className="flex items-center gap-1"><Gauge className="h-3.5 w-3.5" /><span className="text-[10px]">Odometer</span></div>
+                      <button onClick={() => setEditOdometer(true)} className="opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 className="h-3 w-3" /></button>
+                    </div>
+                    {editOdometer ? (
+                      <div className="flex items-center gap-1">
+                        <Input value={odoInput} onChange={(e) => setOdoInput(e.target.value)} className="h-6 text-xs px-1.5 py-0" onKeyDown={(e) => e.key === 'Enter' && saveOdometer()} autoFocus />
+                        <button onClick={saveOdometer} className="text-emerald-500"><Save className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => setEditOdometer(false)} className="text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold">{odometer} km</p>
+                    )}
+                  </div>
                   {[
-                    { label: 'Odometer',  value: '78,420 km',   icon: <Gauge className="h-3.5 w-3.5" /> },
                     { label: 'Year',      value: '2022',         icon: <Calendar className="h-3.5 w-3.5" /> },
                     { label: 'Base',      value: 'Sarita Vihar', icon: <MapPin className="h-3.5 w-3.5" /> },
                     { label: 'Capacity',  value: '2 patients',  icon: <Bed className="h-3.5 w-3.5" /> },
@@ -230,13 +295,18 @@ export default function DriverVehiclePage() {
                   <Activity className="h-4 w-4 text-emerald-500" />
                   <CardTitle className="text-base">System Health</CardTitle>
                 </div>
-                <Badge variant="outline" className="text-xs gap-1">
-                  {HEALTH_ITEMS.filter(h => h.status === 'good' || h.status === 'active').length}/{HEALTH_ITEMS.length} OK
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs gap-1">
+                    {healthItems.filter(h => h.status === 'good' || h.status === 'active').length}/{healthItems.length} OK
+                  </Badge>
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowIssueModal(true)}>
+                    <AlertCircle className="h-3 w-3 text-red-500" /> Report Issue
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              {HEALTH_ITEMS.map((item, idx) => (
+              {healthItems.map((item, idx) => (
                 <motion.div
                   key={item.label}
                   initial={{ opacity: 0, x: -10 }}
@@ -285,18 +355,18 @@ export default function DriverVehiclePage() {
                   <CardTitle className="text-base">Daily Inspection</CardTitle>
                 </div>
                 <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-xs">
-                  {CHECKLIST.filter(c => c.ok).length}/{CHECKLIST.length} Passed
+                  {checklist.filter(c => c.ok).length}/{checklist.length} Passed
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-1.5">
-              {CHECKLIST.map((item, idx) => (
+              {checklist.map((item) => (
                 <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  className={`flex items-start gap-2.5 p-2 rounded-lg transition-colors ${item.ok ? 'hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10' : 'bg-amber-50/60 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/40'}`}
+                  key={item.id}
+                  layout
+                  className={`flex items-start gap-2.5 p-2 rounded-lg transition-colors cursor-pointer select-none ${item.ok ? 'hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10' : 'bg-amber-50/60 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/40'}`}
+                  onClick={() => toggleCheckItem(item.id)}
+                  title="Click to toggle"
                 >
                   {item.ok ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -309,6 +379,7 @@ export default function DriverVehiclePage() {
                       <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-0.5">{item.note}</p>
                     )}
                   </div>
+                  <span className="text-[9px] text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0 mt-0.5">tap</span>
                 </motion.div>
               ))}
             </CardContent>
@@ -325,7 +396,7 @@ export default function DriverVehiclePage() {
                 <Wrench className="h-4 w-4 text-violet-500" />
                 <CardTitle className="text-base">Maintenance History</CardTitle>
               </div>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowServiceModal(true)}>
                 Request Service
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
@@ -410,5 +481,105 @@ export default function DriverVehiclePage() {
       </motion.div>
 
     </motion.div>
+
+      {/* ── Service Request Modal ── */}
+      <AnimatePresence>
+        {showServiceModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setShowServiceModal(false)} />
+            <motion.div initial={{ scale: 0.92, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-violet-500" />
+                    <h2 className="font-bold text-lg">Request Service</h2>
+                  </div>
+                  <button onClick={() => setShowServiceModal(false)} className="size-8 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">Service Type *</label>
+                    <Input placeholder="e.g. Oil Change, Tyre Rotation, AC Service..." value={serviceForm.type} onChange={(e) => setServiceForm((p) => ({ ...p, type: e.target.value }))} className="bg-muted/40" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">Description</label>
+                    <textarea placeholder="Describe the issue or service needed..." value={serviceForm.description} onChange={(e) => setServiceForm((p) => ({ ...p, description: e.target.value }))} className="flex w-full min-h-[80px] rounded-xl border border-input bg-muted/40 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">Urgency</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['low', 'normal', 'urgent'] as const).map((val) => {
+                        const labels = { low: 'Low', normal: 'Normal', urgent: 'Urgent' };
+                        const clsMap = { low: 'text-emerald-600 bg-emerald-50 border-emerald-300', normal: 'text-blue-600 bg-blue-50 border-blue-300', urgent: 'text-red-600 bg-red-50 border-red-300' };
+                        return (
+                          <button key={val} onClick={() => setServiceForm((p) => ({ ...p, urgency: val }))} className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${serviceForm.urgency === val ? clsMap[val] : 'border-border text-muted-foreground'}`}>
+                            {labels[val]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowServiceModal(false)}>Cancel</Button>
+                  <Button className="flex-1 gap-2" disabled={!serviceForm.type.trim()} onClick={submitServiceRequest}><Send className="h-4 w-4" /> Submit Request</Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Report Issue Modal ── */}
+      <AnimatePresence>
+        {showIssueModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setShowIssueModal(false)} />
+            <motion.div initial={{ scale: 0.92, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <h2 className="font-bold text-lg">Report Vehicle Issue</h2>
+                  </div>
+                  <button onClick={() => setShowIssueModal(false)} className="size-8 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">System / Component *</label>
+                    <select value={issueForm.system} onChange={(e) => setIssueForm((p) => ({ ...p, system: e.target.value }))} className="w-full text-sm bg-muted/40 border border-input rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-ring">
+                      <option value="">Select system...</option>
+                      {healthItems.map((h) => <option key={h.label} value={h.label}>{h.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">Issue Description *</label>
+                    <textarea placeholder="Describe the problem in detail..." value={issueForm.description} onChange={(e) => setIssueForm((p) => ({ ...p, description: e.target.value }))} className="flex w-full min-h-[80px] rounded-xl border border-input bg-muted/40 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold">Severity</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['warning', 'critical'] as const).map((val) => {
+                        const labels = { warning: '⚠️ Warning', critical: '🚨 Critical' };
+                        const clsMap = { warning: 'text-amber-600 bg-amber-50 border-amber-300', critical: 'text-red-600 bg-red-50 border-red-300' };
+                        return (
+                          <button key={val} onClick={() => setIssueForm((p) => ({ ...p, severity: val }))} className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${issueForm.severity === val ? clsMap[val] : 'border-border text-muted-foreground'}`}>
+                            {labels[val]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowIssueModal(false)}>Cancel</Button>
+                  <Button variant="destructive" className="flex-1 gap-2" disabled={!issueForm.system || !issueForm.description.trim()} onClick={reportIssue}><AlertTriangle className="h-4 w-4" /> Report Issue</Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

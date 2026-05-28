@@ -17,7 +17,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await prisma.user.findUnique({ where: { id }, include: { emergencyContacts: true } });
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        emergencyContacts: true,
+        ambulance: { select: { id: true, vehicleNumber: true, status: true } },
+        hospital: { select: { id: true, name: true, city: true } },
+      },
+    });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
     return NextResponse.json(safeUser(user as Parameters<typeof safeUser>[0]));
   } catch (error) {
@@ -33,9 +40,9 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const data: { name?: string; phone?: string; address?: string; bloodGroup?: string; dateOfBirth?: string; gender?: string; allergies?: string; currentMedications?: string; chronicConditions?: string } = {};
+    const data: Record<string, unknown> = {};
 
-    for (const field of ['name', 'phone', 'address', 'bloodGroup', 'dateOfBirth', 'gender'] as const) {
+    for (const field of ['name', 'phone', 'address', 'bloodGroup', 'dateOfBirth', 'gender', 'role'] as const) {
       if (body[field] !== undefined) data[field] = body[field];
     }
     for (const field of ['allergies', 'currentMedications', 'chronicConditions'] as const) {
@@ -48,7 +55,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
-    const user = await prisma.user.update({ where: { id }, data, include: { emergencyContacts: true } });
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      include: {
+        emergencyContacts: true,
+        ambulance: { select: { id: true, vehicleNumber: true, status: true } },
+        hospital: { select: { id: true, name: true, city: true } },
+      },
+    });
     return NextResponse.json(safeUser(user as Parameters<typeof safeUser>[0]));
   } catch (error: unknown) {
     const e = error as { code?: string };

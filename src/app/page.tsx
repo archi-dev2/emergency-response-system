@@ -39,6 +39,16 @@ import AdminSettingsPage from '@/components/pages/AdminSettingsPage';
 import AdminReportsPage from '@/components/pages/AdminReportsPage';
 import DoctorAppointmentsPage from '@/components/pages/DoctorAppointmentsPage';
 import HelpPage from '@/components/pages/HelpPage';
+import PatientPharmacyStorePage from '@/components/pages/PatientPharmacyStorePage';
+import HospitalInventoryPage from '@/components/pages/HospitalInventoryPage';
+import AdminAppointmentsPage from '@/components/pages/AdminAppointmentsPage';
+import AdminPharmacyOrdersPage from '@/components/pages/AdminPharmacyOrdersPage';
+import DoctorBookingsPage from '@/components/pages/DoctorBookingsPage';
+import OrderTrackingPage from '@/components/pages/OrderTrackingPage';
+import InsurancePage from '@/components/pages/InsurancePage';
+import LoansPage from '@/components/pages/LoansPage';
+import AdminInsurancePage from '@/components/pages/AdminInsurancePage';
+import AdminLoansPage from '@/components/pages/AdminLoansPage';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type PageRoute } from '@/types';
 
@@ -78,6 +88,16 @@ const pageComponents: Record<PageRoute, React.ComponentType> = {
   'help': HelpPage,
   'emergency-profile': EmergencyProfilePage,
   'ai-chat': AIChatPage,
+  'pharmacy-store': PatientPharmacyStorePage,
+  'hospital-inventory': HospitalInventoryPage,
+  'admin-appointments': AdminAppointmentsPage,
+  'admin-orders': AdminPharmacyOrdersPage,
+  'doctor-bookings': DoctorBookingsPage,
+  'order-tracking': OrderTrackingPage,
+  'insurance': InsurancePage,
+  'loans': LoansPage,
+  'admin-insurance': AdminInsurancePage,
+  'admin-loans': AdminLoansPage,
 };
 
 

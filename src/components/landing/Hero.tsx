@@ -1,11 +1,12 @@
 'use client';
 
 import { motion, useScroll, useTransform, useMotionValue, useSpring, useReducedMotion } from 'framer-motion';
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Phone, Shield, HeartPulse, Activity, ArrowDown, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigationStore } from '@/store';
 import DemoModal from '@/components/landing/DemoModal';
+import ParticleCanvas from '@/components/landing/ParticleCanvas';
 
 /* ── Marquee ticker ─────────────────────────────────────────────────────────── */
 const TICKER_ITEMS = [
@@ -131,7 +132,8 @@ export default function Hero() {
   const textParallax = useTransform(scrollYProgress, [0, 0.5], [0, prefersReducedMotion ? 0 : -60]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1117 40%, #0f0a1a 100%)' }}>
+    <section ref={sectionRef} className="relative min-h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, #050810 0%, #0a0e1a 40%, #0c0814 100%)' }}>
+      <ParticleCanvas />
       <AmbientOrbs />
       <EKGDecor />
 

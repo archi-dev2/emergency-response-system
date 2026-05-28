@@ -43,7 +43,17 @@ export type PageRoute =
   | 'doctor-appointments'
   | 'help'
   | 'emergency-profile'
-  | 'ai-chat';
+  | 'ai-chat'
+  | 'pharmacy-store'
+  | 'hospital-inventory'
+  | 'admin-appointments'
+  | 'admin-orders'
+  | 'doctor-bookings'
+  | 'order-tracking'
+  | 'insurance'
+  | 'loans'
+  | 'admin-insurance'
+  | 'admin-loans';
 
 export interface User {
   id: string;
@@ -62,6 +72,10 @@ export interface User {
   chronicConditions: string[];
   emergencyContacts: EmergencyContact[];
   createdAt: string;
+  hospitalId?: string;
+  // Populated by GET /api/users/[id] — not stored in auth store
+  ambulance?: { id: string; vehicleNumber: string; status: string } | null;
+  hospital?: { id: string; name: string; city: string } | null;
 }
 
 export interface EmergencyContact {

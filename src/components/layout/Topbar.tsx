@@ -56,6 +56,16 @@ const PAGE_TITLES: Record<PageRoute, string> = {
   'help': 'Help Center',
   'emergency-profile': 'Emergency Profile',
   'ai-chat': 'AI Medical Assistant',
+  'pharmacy-store': 'Order Medicines',
+  'hospital-inventory': 'Inventory Management',
+  'admin-appointments': 'Appointments Manager',
+  'admin-orders': 'Pharmacy Orders',
+  'doctor-bookings': 'Patient Bookings',
+  'order-tracking': 'Track Your Order',
+  'insurance': 'Health Insurance',
+  'loans': 'Health Loans',
+  'admin-insurance': 'Insurance Manager',
+  'admin-loans': 'Loans Manager',
 };
 
 const AVATAR_COLORS = [

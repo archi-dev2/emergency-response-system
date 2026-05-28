@@ -36,6 +36,13 @@ import {
   Settings,
   Calendar,
   HelpCircle,
+  ShoppingBag,
+  PackageOpen,
+  CalendarCheck,
+  CalendarClock,
+  MapPin,
+  ShieldCheck,
+  Banknote,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -74,6 +81,13 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Settings,
   Calendar,
   HelpCircle,
+  ShoppingBag,
+  PackageOpen,
+  CalendarCheck,
+  CalendarClock,
+  MapPin,
+  ShieldCheck,
+  Banknote,
 };
 
 const ROLE_COLORS: Record<Role, { bg: string; text: string; dot: string }> = {

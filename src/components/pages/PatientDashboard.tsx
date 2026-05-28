@@ -11,6 +11,10 @@ import {
   Heart,
   Pill,
   Bug,
+  ShoppingBag,
+  Zap,
+  Truck,
+  Clock,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +55,7 @@ export default function PatientDashboard() {
       {/* Hero Header */}
       <DashboardHero
         greeting="Welcome back"
-        name={user?.name?.split(' ')[0] || patient.name.split(' ')[0]}
+        name={user?.name?.split(' ')[0] || 'Patient'}
         subtitle="Your health overview · Everything is up to date"
         gradient="linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0f172a 100%)"
         accentColor="rgba(16,185,129,0.3)"
@@ -61,7 +65,7 @@ export default function PatientDashboard() {
           { value: '98%', label: 'Profile complete' },
           { value: '3.8 min', label: 'Last response' },
           { value: '2', label: 'Active contacts' },
-          { value: 'O+', label: 'Blood group' },
+          { value: user?.bloodGroup ? (user.bloodGroup.replace('_POS','+').replace('_NEG','−')) : 'O+', label: 'Blood group' },
         ]}
       />
 
@@ -184,6 +188,56 @@ export default function PatientDashboard() {
             <Card className="card-hover">
               <CardContent className="p-4">
                 <EmergencyReadiness />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Pharmacy Quick Access */}
+          <motion.div variants={fadeUp}>
+            <Card
+              className="card-hover cursor-pointer overflow-hidden border-0"
+              onClick={() => setCurrentPage('pharmacy-store')}
+            >
+              <CardContent className="p-0">
+                <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-5 overflow-hidden">
+                  {/* Background decoration */}
+                  <div className="absolute right-0 top-0 w-24 h-24 rounded-full bg-white/5 -translate-y-4 translate-x-4" />
+                  <div className="absolute right-6 bottom-0 w-16 h-16 rounded-full bg-white/5 translate-y-3" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                        <ShoppingBag className="size-4 text-white" />
+                      </div>
+                      <span className="text-white font-bold text-sm">LifeLink Pharmacy</span>
+                    </div>
+
+                    <p className="text-white/80 text-xs mb-4 leading-relaxed">
+                      Order authentic medicines & healthcare products delivered to your door.
+                    </p>
+
+                    <div className="flex items-center gap-3 mb-4">
+                      {[
+                        { icon: Truck, label: 'Fast Delivery' },
+                        { icon: Zap, label: '100% Genuine' },
+                        { icon: Clock, label: '24hr Delivery' },
+                      ].map(({ icon: Icon, label }) => (
+                        <div key={label} className="flex items-center gap-1 text-white/70 text-[10px]">
+                          <Icon className="size-2.5" />
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/60 text-xs">22+ medicine categories</span>
+                      <div className="flex items-center gap-1 bg-white/20 rounded-lg px-2.5 py-1.5">
+                        <span className="text-white text-xs font-semibold">Shop Now</span>
+                        <ArrowRight className="size-3 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
