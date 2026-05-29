@@ -1,7 +1,8 @@
 {
   "name": "LifeLink",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
-  "postCreateCommand": "npm install && echo 'DATABASE_URL=\"file:./db/custom.db\"' > .env && npm run db:setup",
+  "postCreateCommand": "npm install",
+  "postStartCommand": "echo 'DATABASE_URL=\"file:./db/custom.db\"' > .env && npm run db:setup",
   "forwardPorts": [3000],
   "portsAttributes": {
     "3000": {
