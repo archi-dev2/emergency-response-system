@@ -1,8 +1,9 @@
 'use client';
 
-import { useNavigationStore, useAuthStore } from '@/store';
+import { useNavigationStore } from '@/store';
+import { useSession } from 'next-auth/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 import LandingPage from '@/components/pages/LandingPage';
 import LoginPage from '@/components/pages/LoginPage';
@@ -49,6 +50,7 @@ import InsurancePage from '@/components/pages/InsurancePage';
 import LoansPage from '@/components/pages/LoansPage';
 import AdminInsurancePage from '@/components/pages/AdminInsurancePage';
 import AdminLoansPage from '@/components/pages/AdminLoansPage';
+import HospitalScannerPage from '@/components/pages/HospitalScannerPage';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type PageRoute } from '@/types';
 
@@ -98,6 +100,7 @@ const pageComponents: Record<PageRoute, React.ComponentType> = {
   'loans': LoansPage,
   'admin-insurance': AdminInsurancePage,
   'admin-loans': AdminLoansPage,
+  'hospital-scanner': HospitalScannerPage,
 };
 
 
@@ -105,13 +108,40 @@ const publicPages: PageRoute[] = ['landing', 'login', 'signup', 'emergency-profi
 
 function HomeContent() {
   const { currentPage, setCurrentPage } = useNavigationStore();
-  const { isAuthenticated } = useAuthStore();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Derive the page to show directly from the URL — no setState during render
   const pageParam = searchParams.get('page') as PageRoute | null;
   const resolvedPage: PageRoute =
     pageParam && pageComponents[pageParam] ? pageParam : currentPage;
+
+  // Enforce role-based routing and redirect away from auth pages
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      if (session.user.role === 'UNASSIGNED') {
+        router.push('/onboarding');
+        return;
+      }
+
+      let targetPage: PageRoute = 'dashboard';
+      if (session.user.role === 'DRIVER') targetPage = 'driver-dashboard';
+      else if (session.user.role === 'HOSPITAL_STAFF') targetPage = 'hospital-dashboard';
+      else if (session.user.role === 'ADMIN') targetPage = 'admin';
+
+      const isAuthPage = ['login', 'signup', 'landing'].includes(resolvedPage);
+      
+      // Prevent drivers/staff/admins from sitting on the default patient dashboard
+      const isWrongDashboard =
+        resolvedPage === 'dashboard' && session.user.role !== 'PATIENT';
+
+      if (isAuthPage || isWrongDashboard) {
+        setCurrentPage(targetPage);
+        router.push(`/?page=${targetPage}`);
+      }
+    }
+  }, [status, session, resolvedPage, setCurrentPage, router]);
 
   // Sync the Zustand store in the background (for nav highlighting etc.)
   // This runs AFTER render, so it never causes a crash
@@ -140,11 +170,19 @@ function HomeContent() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (status === 'loading') {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !session) {
     return <LoginPage />;
   }
 
-  // DashboardLayout already contains SOSFloatingButton, OnboardingFlow, MedicalChatbot, SOSAlertBanner
+  // DashboardLayout already contains SOSFloatingButton, MedicalChatbot, SOSAlertBanner
   return (
     <DashboardLayout>
       <AnimatePresence mode="wait">

@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-function safeUser(u: { passwordHash: string; allergies: string; currentMedications: string; chronicConditions: string; [k: string]: unknown }) {
-  const { passwordHash: _, allergies, currentMedications, chronicConditions, ...rest } = u;
-  return {
-    ...rest,
-    allergies: (() => { try { return JSON.parse(allergies || '[]'); } catch { return []; } })(),
-    currentMedications: (() => { try { return JSON.parse(currentMedications || '[]'); } catch { return []; } })(),
-    chronicConditions: (() => { try { return JSON.parse(chronicConditions || '[]'); } catch { return []; } })(),
-  };
-}
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,12 +11,35 @@ export async function GET(
       where: { id },
       include: {
         emergencyContacts: true,
+        patientProfile: true,
+        driverProfile: true,
+        staffProfile: true,
+        adminProfile: true,
         ambulance: { select: { id: true, vehicleNumber: true, status: true } },
         hospital: { select: { id: true, name: true, city: true } },
       },
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    return NextResponse.json(safeUser(user as Parameters<typeof safeUser>[0]));
+
+    // Lazy generate qrCodeId for existing patients
+    if (user.patientProfile && !user.patientProfile.qrCodeId) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let generated = '';
+      while (true) {
+        generated = Array.from({ length: 6 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+        const existing = await prisma.patientProfile.findUnique({ where: { qrCodeId: generated } });
+        if (!existing) break;
+      }
+      
+      const updatedProfile = await prisma.patientProfile.update({
+        where: { id: user.patientProfile.id },
+        data: { qrCodeId: generated }
+      });
+      user.patientProfile = updatedProfile;
+    }
+
+    const { passwordHash: _, ...safeUser } = user;
+    return NextResponse.json(safeUser);
   } catch (error) {
     console.error('[GET /api/users/[id]]', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -42,13 +55,8 @@ export async function PATCH(
     const body = await request.json();
     const data: Record<string, unknown> = {};
 
-    for (const field of ['name', 'phone', 'address', 'bloodGroup', 'dateOfBirth', 'gender', 'role'] as const) {
+    for (const field of ['name', 'phone', 'role', 'isVerified', 'city', 'pinCode', 'country'] as const) {
       if (body[field] !== undefined) data[field] = body[field];
-    }
-    for (const field of ['allergies', 'currentMedications', 'chronicConditions'] as const) {
-      if (body[field] !== undefined) {
-        data[field] = Array.isArray(body[field]) ? JSON.stringify(body[field]) : body[field];
-      }
     }
 
     if (Object.keys(data).length === 0) {
@@ -60,11 +68,16 @@ export async function PATCH(
       data,
       include: {
         emergencyContacts: true,
+        patientProfile: true,
+        driverProfile: true,
+        staffProfile: true,
+        adminProfile: true,
         ambulance: { select: { id: true, vehicleNumber: true, status: true } },
         hospital: { select: { id: true, name: true, city: true } },
       },
     });
-    return NextResponse.json(safeUser(user as Parameters<typeof safeUser>[0]));
+    const { passwordHash: _, ...safeUser } = user;
+    return NextResponse.json(safeUser);
   } catch (error: unknown) {
     const e = error as { code?: string };
     if (e?.code === 'P2025') return NextResponse.json({ error: 'User not found' }, { status: 404 });

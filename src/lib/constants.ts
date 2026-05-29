@@ -37,6 +37,7 @@ export const NAVIGATION_ITEMS = {
   ],
   HOSPITAL_STAFF: [
     { label: 'Emergency Queue', route: 'hospital-dashboard' as const, icon: 'AlertTriangle', emergency: true },
+    { label: 'Patient Scanner', route: 'hospital-scanner' as const, icon: 'ScanLine' },
     { label: 'Bed Management', route: 'hospital-beds' as const, icon: 'BedDouble' },
     { label: 'Patient Intake', route: 'hospital-patients' as const, icon: 'UserPlus' },
     { label: 'Doctors', route: 'hospital-doctors' as const, icon: 'Stethoscope' },

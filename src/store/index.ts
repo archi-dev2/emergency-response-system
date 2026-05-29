@@ -46,65 +46,7 @@ export const useNavigationStore = create<NavigationState>()(
 );
 
 // Auth Store
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  loginWithUser: (user: User) => void;
-  logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
-}
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-          if (!res.ok) {
-            set({ isLoading: false });
-            return false;
-          }
-          const user = await res.json();
-          set({ user, isAuthenticated: true, isLoading: false });
-          return true;
-        } catch {
-          set({ isLoading: false });
-          return false;
-        }
-      },
-      loginWithUser: (user: User) => set({ user, isAuthenticated: true }),
-      logout: () => set({ user: null, isAuthenticated: false }),
-      updateProfile: (updates) => {
-        const { user } = get();
-        if (user) {
-          set({ user: { ...user, ...updates } });
-        }
-      },
-    }),
-    {
-      name: 'lifelink-auth',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined') return localStorage;
-        return {
-          getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {},
-        };
-      }),
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-    }
-  )
-);
 
 // Emergency Store
 interface EmergencyState {
@@ -121,6 +63,7 @@ interface EmergencyState {
     patientLongitude: number;
     timeline: { id: string; event: string; description?: string; timestamp: string }[];
     startedAt: string;
+    dbEmergencyId?: string;
   } | null;
   trackingData: {
     latitude: number;
@@ -131,13 +74,14 @@ interface EmergencyState {
     distanceRemaining: number;
   } | null;
   sosActivated: boolean;
-  activateSOS: (severity: number, description?: string) => void;
+  activateSOS: (severity: number, description?: string, patientName?: string, patientBloodGroup?: string) => void;
   acceptEmergency: (ambulanceId: string) => void;
   rejectEmergency: () => void;
   markArrived: () => void;
   completeEmergency: () => void;
   updateTracking: (data: EmergencyState['trackingData']) => void;
   cancelEmergency: () => void;
+  setDbEmergencyId: (id: string) => void;
   addTimelineEvent: (event: string, description?: string) => void;
 }
 
@@ -150,17 +94,15 @@ export const useEmergencyStore = create<EmergencyState>()(
       trackingData: null,
       sosActivated: false,
 
-      activateSOS: (severity, description) => {
+      activateSOS: (severity, description, patientNameStr, patientBloodGroupStr) => {
         const requestId = `ER-${Date.now().toString(36).toUpperCase()}`;
         const now = new Date().toISOString();
         // Use Delhi coordinates for demo
         const lat = 28.6139 + (Math.random() - 0.5) * 0.01;
         const lng = 77.2090 + (Math.random() - 0.5) * 0.01;
 
-        // Get current patient info from auth store
-        const authState = useAuthStore.getState();
-        const patientName = authState.user?.name ?? 'Unknown Patient';
-        const patientBloodGroup = authState.user?.bloodGroup ?? 'O_POS';
+        const patientName = patientNameStr ?? 'Unknown Patient';
+        const patientBloodGroup = patientBloodGroupStr ?? 'O_POS';
 
         set({
           sosActivated: true,
@@ -235,6 +177,17 @@ export const useEmergencyStore = create<EmergencyState>()(
 
       updateTracking: (data) => set({ trackingData: data }),
       cancelEmergency: () => set({ activeEmergency: null, trackingData: null, sosActivated: false }),
+      setDbEmergencyId: (id) => {
+        const { activeEmergency } = get();
+        if (activeEmergency) {
+          set({
+            activeEmergency: {
+              ...activeEmergency,
+              dbEmergencyId: id,
+            },
+          });
+        }
+      },
 
       addTimelineEvent: (event, description) => {
         const { activeEmergency } = get();
@@ -278,6 +231,55 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
+// ─── Driver Assignment Store (real SSE broadcast flow) ───────────────────────
+export interface DriverAssignment {
+  emergencyId: string;
+  status: string;
+  severity: number;
+  city: string;
+  description: string | null;
+  latitude: number;
+  longitude: number;
+  assignedAt: string;
+  patient: {
+    id: string;
+    name: string | null;
+    phone: string | null;
+    city: string | null;
+    patientProfile: {
+      bloodGroup: string | null;
+      allergies: string | null;
+      chronicConditions: string | null;
+      currentMedications: string | null;
+    } | null;
+    emergencyContacts: { name: string; relationship: string; phone: string }[];
+  };
+  timeline: { id: string; event: string; description?: string | null; timestamp: string }[];
+}
+
+interface DriverAssignmentState {
+  assignment: DriverAssignment | null;
+  setAssignment: (data: DriverAssignment) => void;
+  clearAssignment: () => void;
+}
+
+export const useDriverAssignmentStore = create<DriverAssignmentState>()(
+  persist(
+    (set) => ({
+      assignment: null,
+      setAssignment: (data) => set({ assignment: data }),
+      clearAssignment: () => set({ assignment: null }),
+    }),
+    {
+      name: 'lifelink-driver-assignment',
+      storage: createJSONStorage(() => {
+        if (typeof window !== 'undefined') return localStorage;
+        return { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+      }),
+    }
+  )
+);
 
 // ─── Live Feed Store ─────────────────────────────────────────────────────────
 
@@ -365,14 +367,8 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   theme: 'system',
   setTheme: (theme) => set({ theme }),
-  notifications: [
-    { id: '1', title: 'SOS Alert Test', message: 'A test emergency was triggered in your area.', type: 'EMERGENCY', isRead: false, createdAt: new Date(Date.now() - 300000).toISOString() },
-    { id: '2', title: 'Ambulance Update', message: 'Your assigned ambulance is 2km away.', type: 'AMBULANCE', isRead: false, createdAt: new Date(Date.now() - 900000).toISOString() },
-    { id: '3', title: 'Hospital Bed Reserved', message: 'AIIMS has reserved an emergency bed for you.', type: 'HOSPITAL', isRead: true, createdAt: new Date(Date.now() - 1800000).toISOString() },
-    { id: '4', title: 'Medical Record Update', message: 'Your prescription was updated by Dr. Sharma.', type: 'SYSTEM', isRead: true, createdAt: new Date(Date.now() - 3600000).toISOString() },
-    { id: '5', title: 'Feedback Request', message: 'Please rate your last emergency experience.', type: 'SYSTEM', isRead: false, createdAt: new Date(Date.now() - 7200000).toISOString() },
-  ],
-  unreadCount: 3,
+  notifications: [],
+  unreadCount: 0,
   markAsRead: (id) =>
     set((s) => ({
       notifications: s.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
