@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useUIStore, useLiveFeedStore, useNavigationStore } from '@/store';
+import { useUIStore, useLiveFeedStore, useNavigationStore } from '@/store';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -467,7 +468,8 @@ function CheckoutFlow({ open, total, items, onClose, onDone }: {
   open: boolean; total: number; items: CartItem[];
   onClose: () => void; onDone: (orderId: string) => void;
 }) {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [step, setStep] = useState<CheckoutStep>('address');
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');

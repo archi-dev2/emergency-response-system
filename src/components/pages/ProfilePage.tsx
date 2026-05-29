@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,7 +59,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useAuthStore, useNavigationStore } from '@/store';
+import { useNavigationStore } from '@/store';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import type { EmergencyContact, BloodGroup, User as UserType } from '@/types';
 import { toast } from 'sonner';
@@ -156,11 +157,14 @@ function TagList({ tags, onRemove, onAdd, placeholder }: { tags: string[]; onRem
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function ProfilePage() {
-  const { user: storeUser, updateProfile } = useAuthStore();
+  const { data: session } = useSession();
+  
+  const storeUser = session?.user;
+  const updateProfile = (u: any) => {}; // TODO: implement update profile api
   const { setCurrentPage } = useNavigationStore();
 
   // Live user state (starts with store user, refreshed from API)
-  const [profile, setProfile] = useState<UserType | null>(storeUser);
+  const [profile, setProfile] = useState<UserType | null>(storeUser as UserType | null);
   const [loading, setLoading] = useState(false);
 
   // Refresh from DB on mount
@@ -182,7 +186,7 @@ export default function ProfilePage() {
   const p = profile ?? storeUser;
   if (!p) return null;
 
-  return <ProfileContent profile={p} setProfile={setProfile} updateProfile={updateProfile} setCurrentPage={setCurrentPage} loading={loading} />;
+  return <ProfileContent profile={p as UserType} setProfile={setProfile} updateProfile={updateProfile} setCurrentPage={setCurrentPage} loading={loading} />;
 }
 
 function ProfileContent({
@@ -224,11 +228,12 @@ function ProfileContent({
 
   // ── Medical form (PATIENT only) ───────────────────────────────────────────
   const [medEditing, setMedEditing] = useState(false);
+  const pp = (profile as any).patientProfile || {};
   const [medForm, setMedForm] = useState({
-    bloodGroup: profile.bloodGroup || '',
-    allergies: [...(profile.allergies || [])],
-    currentMedications: [...(profile.currentMedications || [])],
-    chronicConditions: [...(profile.chronicConditions || [])],
+    bloodGroup: pp.bloodGroup || '',
+    allergies: pp.allergies ? JSON.parse(pp.allergies) : [],
+    currentMedications: pp.currentMedications ? JSON.parse(pp.currentMedications) : [],
+    chronicConditions: pp.chronicConditions ? JSON.parse(pp.chronicConditions) : [],
   });
 
   // ── Emergency contacts ────────────────────────────────────────────────────
@@ -236,6 +241,22 @@ function ProfileContent({
   const [showAddContact, setShowAddContact] = useState(false);
   const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
   const [savingContact, setSavingContact] = useState(false);
+
+  // ── Service Area form (DRIVER only) ───────────────────────────────────────────
+  const [serviceAreaEditing, setServiceAreaEditing] = useState(false);
+  const [serviceAreaForm, setServiceAreaForm] = useState({
+    city: profile.city || '',
+    pinCode: profile.pinCode || '',
+    country: profile.country || '',
+  });
+
+  useEffect(() => {
+    setServiceAreaForm({
+      city: profile.city || '',
+      pinCode: profile.pinCode || '',
+      country: profile.country || '',
+    });
+  }, [profile.id, profile.city, profile.pinCode, profile.country]);
 
   // ── Save personal info ────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -286,6 +307,28 @@ function ProfileContent({
     }
     toast.success('Medical info updated');
     setMedEditing(false);
+  };
+
+  // ── Save Service Area ─────────────────────────────────────────────────────
+  const handleSaveServiceArea = async () => {
+    const updates: Partial<UserType> = {
+      city: serviceAreaForm.city,
+      pinCode: serviceAreaForm.pinCode,
+      country: serviceAreaForm.country,
+    };
+    const next = { ...profile, ...updates };
+    setProfile(next);
+    updateProfile(updates);
+
+    if (profile.id) {
+      await fetch(`/api/users/${profile.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      }).catch(() => {});
+    }
+    toast.success('Service area updated');
+    setServiceAreaEditing(false);
   };
 
   // ── Emergency contact management ──────────────────────────────────────────
@@ -726,6 +769,52 @@ function ProfileContent({
                   </motion.div>
                 )}
               </AnimatePresence>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* ── Driver Service Area (editable) ── */}
+      {profile.role === 'DRIVER' && (
+        <motion.div variants={fadeUp}>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" /> Service Area
+                </CardTitle>
+                {!serviceAreaEditing ? (
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setServiceAreaEditing(true)}>
+                    <Edit3 className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => setServiceAreaEditing(false)}>
+                      <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                    </Button>
+                    <Button size="sm" className="gap-1.5 text-xs" onClick={handleSaveServiceArea}>
+                      <Save className="h-3.5 w-3.5" /> Save
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <p className="text-xs text-muted-foreground mb-3">Update your location to receive relevant SOS alerts.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field label="City" editing={serviceAreaEditing}
+                  display={<span className="text-sm font-medium">{profile.city || 'Not set'}</span>}
+                  input={<Input value={serviceAreaForm.city} onChange={(e) => setServiceAreaForm({ ...serviceAreaForm, city: e.target.value })} placeholder="e.g. New Delhi" />}
+                />
+                <Field label="Pin Code" editing={serviceAreaEditing}
+                  display={<span className="text-sm font-medium">{profile.pinCode || 'Not set'}</span>}
+                  input={<Input value={serviceAreaForm.pinCode} onChange={(e) => setServiceAreaForm({ ...serviceAreaForm, pinCode: e.target.value })} placeholder="e.g. 110016" />}
+                />
+                <Field label="Country" editing={serviceAreaEditing}
+                  display={<span className="text-sm font-medium">{profile.country || 'Not set'}</span>}
+                  input={<Input value={serviceAreaForm.country} onChange={(e) => setServiceAreaForm({ ...serviceAreaForm, country: e.target.value })} placeholder="e.g. India" />}
+                />
+              </div>
             </CardContent>
           </Card>
         </motion.div>

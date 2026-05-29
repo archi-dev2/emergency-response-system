@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useUIStore, useLiveFeedStore } from '@/store';
+import { useUIStore, useLiveFeedStore } from '@/store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -722,7 +723,8 @@ function BookingModal({ doctor, onClose, onBooked }: {
   onClose: () => void;
   onBooked: (apt: BookedAppointment) => void;
 }) {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const DAYS = useMemo(() => getNext7Days(), []);
 
   const [step, setStep] = useState<BookStep>('datetime');
@@ -943,7 +945,7 @@ function BookingModal({ doctor, onClose, onBooked }: {
                   </div>
                   <div>
                     <label className="text-sm font-semibold block mb-1.5">Phone Number</label>
-                    <Input defaultValue={user?.phone || ''} className="bg-muted/40" readOnly />
+                    <Input defaultValue={(user as any)?.phone || ''} className="bg-muted/40" readOnly />
                   </div>
                   <div>
                     <label className="text-sm font-semibold block mb-1.5">Reason for Visit <span className="text-muted-foreground font-normal">(optional)</span></label>
