@@ -31,6 +31,9 @@ import { useNavigationStore, useEmergencyStore } from '@/store';
 import { DEMO_AMBULANCES, DEMO_HOSPITALS } from '@/lib/mock-data';
 import { getRelativeTime, STATUS_COLORS } from '@/lib/constants';
 import MapWrapper from '@/components/ui/MapWrapper';
+import { useSosStatus } from '@/hooks/useSosStatus';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 12 },
@@ -59,6 +62,24 @@ export default function TrackingPage() {
   const { setCurrentPage } = useNavigationStore();
   const { activeEmergency, sosActivated, cancelEmergency } = useEmergencyStore();
   const prefersReducedMotion = useReducedMotion();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  // Poll real emergency status from DB
+  const { data: realEmergency } = useSosStatus(activeEmergency?.dbEmergencyId || null);
+
+  // Automatically reset and redirect when the trip is marked COMPLETED by the driver
+  useEffect(() => {
+    if (realEmergency?.status === 'COMPLETED') {
+      cancelEmergency();
+      toast({
+        title: 'Trip Completed',
+        description: 'Your emergency trip has been resolved. Returning to dashboard.',
+      });
+      setCurrentPage('dashboard');
+      router.push('/?page=dashboard');
+    }
+  }, [realEmergency?.status, cancelEmergency, setCurrentPage, router, toast]);
 
   const [waypointIndex, setWaypointIndex] = useState(0);
   const [eta, setEta] = useState(512); // seconds
