@@ -8,7 +8,9 @@ import {
   Activity,
   Clock,
   TrendingDown,
+  ScanLine,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -33,6 +35,7 @@ import {
 } from '@/lib/mock-data';
 import { STATUS_COLORS } from '@/lib/constants';
 import DashboardHero from '@/components/dashboard/DashboardHero';
+import { useNavigationStore } from '@/store';
 
 // ──────────────────────────────────────────────
 // Animation variants
@@ -136,6 +139,7 @@ const BED_TYPE_COLORS: Record<string, string> = {
 // Main component
 // ──────────────────────────────────────────────
 export default function HospitalDashboard() {
+  const { setCurrentPage } = useNavigationStore();
   const hospital = DEMO_HOSPITALS[2]; // AIIMS
   const pendingEmergencies = DEMO_EMERGENCIES.filter(
     (e) => e.hospitalId === hospital.id && !['COMPLETED', 'CANCELLED'].includes(e.status)
@@ -425,6 +429,17 @@ export default function HospitalDashboard() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Floating Scanner Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          size="lg"
+          className="rounded-full h-16 w-16 shadow-2xl flex items-center justify-center bg-primary hover:bg-primary/90 hover:scale-105 transition-all"
+          onClick={() => setCurrentPage('hospital-scanner')}
+        >
+          <ScanLine className="h-7 w-7 text-white" />
+        </Button>
+      </div>
     </motion.div>
   );
 }
