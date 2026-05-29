@@ -5,9 +5,9 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 const prisma = globalForPrisma.prisma ?? new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-function safeUser(u: { passwordHash: string; allergies: string; currentMedications: string; chronicConditions: string; [key: string]: unknown }) {
-  const { passwordHash: _, allergies, currentMedications, chronicConditions, ...rest } = u;
-  return { ...rest, allergies: JSON.parse(allergies || '[]'), currentMedications: JSON.parse(currentMedications || '[]'), chronicConditions: JSON.parse(chronicConditions || '[]') };
+function safeUser(u: any) {
+  const { passwordHash: _, ...rest } = u;
+  return rest;
 }
 
 export async function GET() {
@@ -15,7 +15,9 @@ export async function GET() {
     const emergencies = await prisma.emergencyRequest.findMany({
       where: { status: { notIn: ['COMPLETED', 'CANCELLED'] } },
       include: {
-        patient: true,
+        patient: {
+          include: { patientProfile: true }
+        },
         ambulance: true,
         hospital: true,
         timeline: { orderBy: { timestamp: 'asc' } },
@@ -26,7 +28,7 @@ export async function GET() {
 
     const result = emergencies.map((em) => ({
       ...em,
-      patient: em.patient ? safeUser(em.patient as Parameters<typeof safeUser>[0]) : null,
+      patient: em.patient ? safeUser(em.patient) : null,
       hospital: em.hospital ? { ...em.hospital, specializations: JSON.parse(em.hospital.specializations || '[]') } : null,
     }));
 

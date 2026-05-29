@@ -5,13 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ArrowRight, X, Siren, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useEmergencyStore, useNavigationStore, useAuthStore } from '@/store';
+import { useEmergencyStore, useNavigationStore } from '@/store';
+import { useSession } from 'next-auth/react';
 import { SEVERITY_LABELS } from '@/lib/mock-data';
 
 export default function SOSAlertBanner() {
   const { activeEmergency, sosActivated } = useEmergencyStore();
   const { setCurrentPage, currentPage } = useNavigationStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [dismissed, setDismissed] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
