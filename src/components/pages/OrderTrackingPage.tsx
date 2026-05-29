@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useLiveFeedStore, useAuthStore, useNavigationStore, type PharmacyOrder } from '@/store';
+import { useLiveFeedStore, useNavigationStore, type PharmacyOrder } from '@/store';
 import MapWrapper from '@/components/ui/MapWrapper';
 import type { MapMarker } from '@/components/ui/DynamicMap';
 
@@ -43,7 +44,8 @@ const AGENTS = [
 
 export default function OrderTrackingPage() {
   const { pharmacyOrders, updateOrderStatus } = useLiveFeedStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const { setCurrentPage } = useNavigationStore();
 
   const activeOrder = useMemo(() => {

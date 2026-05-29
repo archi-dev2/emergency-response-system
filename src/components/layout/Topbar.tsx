@@ -13,8 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNavigationStore, useAuthStore, useUIStore } from '@/store';
+import { useNavigationStore, useUIStore } from '@/store';
+import { useSession, signOut } from 'next-auth/react';
 import { useTheme } from '@/components/layout/ThemeProvider';
+import { useRouter } from 'next/navigation';
 import type { PageRoute } from '@/types';
 import { cn } from '@/lib/utils';
 import NotificationPanel from '@/components/dashboard/NotificationPanel';
@@ -64,8 +66,9 @@ const PAGE_TITLES: Record<PageRoute, string> = {
   'order-tracking': 'Track Your Order',
   'insurance': 'Health Insurance',
   'loans': 'Health Loans',
-  'admin-insurance': 'Insurance Manager',
-  'admin-loans': 'Loans Manager',
+  'admin-insurance': 'Manage Insurance',
+  'admin-loans': 'Manage Loans',
+  'hospital-scanner': 'Patient Scanner',
 };
 
 const AVATAR_COLORS = [
@@ -101,10 +104,12 @@ interface TopbarProps {
 
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const { currentPage, setCurrentPage } = useNavigationStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const { theme, setTheme } = useTheme();
   const unreadCount = useUIStore((s) => s.unreadCount);
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
+  const router = useRouter();
 
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
 
@@ -115,9 +120,15 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     setTheme(isDark ? 'light' : 'dark');
   };
 
-  const handleLogout = () => {
-    useAuthStore.getState().logout();
+  const navigate = (page: PageRoute) => {
+    setCurrentPage(page);
+    router.push(`/?page=${page}`);
+  };
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     setCurrentPage('landing');
+    router.push('/');
   };
 
   // Keyboard shortcut for search
@@ -134,8 +145,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   if (!user) return null;
 
-  const avatarColor = getAvatarColor(user.name);
-  const initials = getInitials(user.name);
+  const avatarColor = getAvatarColor(user.name || 'User');
+  const initials = getInitials(user.name || 'U');
 
   return (
     <>
@@ -243,11 +254,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => setCurrentPage('profile')}>
+                <DropdownMenuItem onClick={() => navigate('profile')}>
                   <User className="size-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCurrentPage('profile')}>
+                <DropdownMenuItem onClick={() => navigate('profile')}>
                   <Settings className="size-4 mr-2" />
                   Settings
                 </DropdownMenuItem>

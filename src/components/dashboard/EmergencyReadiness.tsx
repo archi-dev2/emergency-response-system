@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,8 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuthStore, useNavigationStore } from '@/store';
-import { DEMO_PATIENTS } from '@/lib/mock-data';
+import { useNavigationStore } from '@/store';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -211,19 +211,19 @@ function ScoreRing({ score, max }: { score: number; max: number }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function EmergencyReadiness() {
-  const { user } = useAuthStore();
+export default function EmergencyReadiness({ patient }: { patient?: any }) {
+  const { data: session } = useSession();
+  const user = session?.user;
   const { setCurrentPage } = useNavigationStore();
-  const patient = DEMO_PATIENTS[0];
 
   const checks = useMemo<CheckItem[]>(() => {
-    const p = user ?? patient;
+    if (!patient) return [];
     return [
       { label: 'Emergency contacts added', done: (patient.emergencyContacts?.length ?? 0) > 0, route: 'profile', icon: Phone, points: 20 },
       { label: 'Blood group on file', done: !!patient.bloodGroup, route: 'profile', icon: Droplets, points: 20 },
-      { label: 'Medical records uploaded', done: true, route: 'medical-records', icon: FileHeart, points: 20 },
+      { label: 'Medical records uploaded', done: false, route: 'medical-records', icon: FileHeart, points: 20 }, // real user logic
       { label: 'Current medications listed', done: (patient.currentMedications?.length ?? 0) > 0, route: 'profile', icon: Pill, points: 20 },
-      { label: 'Profile photo set', done: !!p?.profileImageUrl, route: 'profile', icon: UserCircle, points: 10 },
+      { label: 'Profile photo set', done: !!user?.image, route: 'profile', icon: UserCircle, points: 10 },
       { label: 'QR card generated', done: true, route: 'qr-card', icon: QrCode, points: 10 },
     ];
   }, [user, patient]);

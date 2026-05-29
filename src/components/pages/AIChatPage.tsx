@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNavigationStore, useAuthStore } from '@/store';
+import { useNavigationStore } from '@/store';
 import { cn } from '@/lib/utils';
 
 // ─── Medical knowledge base ──────────────────────────────────────────────────
@@ -230,7 +231,8 @@ function NeuralBackground() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function AIChatPage() {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const { setCurrentPage } = useNavigationStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');

@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,7 +14,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useUIStore } from '@/store';
+import { useUIStore } from '@/store';
 
 // ── Loan products ─────────────────────────────────────────────────────────────
 
@@ -294,7 +295,8 @@ function ProductModal({ product, onClose, onApply }: { product: LoanProduct; onC
 type AppStep = 'amount' | 'kyc' | 'review' | 'processing' | 'approved';
 
 function ApplicationFlow({ product, onClose, onApproved }: { product: LoanProduct; onClose: () => void; onApproved: (ref: string) => void }) {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [step, setStep] = useState<AppStep>('amount');
   const [loanAmount, setLoanAmount] = useState(product.minAmount);
   const [tenure, setTenure] = useState(product.minTenure + 12);

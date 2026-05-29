@@ -1,4 +1,5 @@
 'use client';
+import { useSession } from 'next-auth/react';
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useUIStore } from '@/store';
+import { useUIStore } from '@/store';
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
 
@@ -229,7 +230,8 @@ function PlanModal({ plan, onClose, onSubscribe }: { plan: Plan; onClose: () => 
 type SubStep = 'details' | 'payment' | 'processing' | 'confirmed';
 
 function SubscribeFlow({ plan, onClose, onSuccess }: { plan: Plan; onClose: () => void; onSuccess: (plan: Plan) => void }) {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [step, setStep] = useState<SubStep>('details');
   const [dob, setDob] = useState('');
   const [members, setMembers] = useState('1');
@@ -549,7 +551,8 @@ function FileClaimModal({ onClose }: { onClose: () => void }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function InsurancePage() {
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [subscribePlan, setSubscribePlan] = useState<Plan | null>(null);
   const [activePlan, setActivePlan] = useState<Plan | null>(PLANS[1]); // Demo: Silver active
