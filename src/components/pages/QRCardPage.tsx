@@ -19,13 +19,14 @@ import {
   Pill,
   Bug,
   ArrowRight,
+  Copy,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useNavigationStore } from '@/store';
-import { DEMO_PATIENTS } from '@/lib/mock-data';
+import { useSession } from 'next-auth/react';
 import { BLOOD_GROUP_LABELS } from '@/lib/constants';
 import { toast } from 'sonner';
 
@@ -92,7 +93,34 @@ function LifeLinkShieldIcon({ size = 20, color = '#fff' }: { size?: number; colo
 
 export default function QRCardPage() {
   const { setCurrentPage } = useNavigationStore();
-  const patient = DEMO_PATIENTS[0];
+  const { data: session } = useSession();
+  const user = session?.user;
+
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/users/${user.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setProfile(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [user?.id]);
+
+  const patient = {
+    ...profile,
+    name: profile?.name || user?.name || 'Patient',
+    id: profile?.id || user?.id || '000000',
+    bloodGroup: profile?.patientProfile?.bloodGroup || 'O_POS',
+    allergies: profile?.patientProfile?.allergies ? JSON.parse(profile.patientProfile.allergies) : [],
+    currentMedications: profile?.patientProfile?.currentMedications ? JSON.parse(profile.patientProfile.currentMedications) : [],
+    emergencyContacts: profile?.emergencyContacts || [],
+  };
+
   const cardRef = useRef<HTMLDivElement>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardVariant, setCardVariant] = useState<CardVariant>('blue');
@@ -100,18 +128,20 @@ export default function QRCardPage() {
 
   const variant = CARD_VARIANTS[cardVariant];
 
-  const allergyData = [
-    { name: 'Penicillin', severity: 'Severe' },
-    { name: 'Sulfa Drugs', severity: 'Moderate' },
-  ];
+  const allergyData: any[] = []; // Removed dummy allergies
 
   // QR Code data as a URL for phone scanning
-  const [qrData, setQrData] = useState(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/emergency/${patient.id}`);
+  const [qrData, setQrData] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && patient.id !== '000000') {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-      setQrData(`${baseUrl}/emergency/${patient.id}`);
+      const payload = btoa(JSON.stringify({
+        patientId: patient.id,
+        issued: Date.now(),
+      })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      
+      setQrData(`${baseUrl}/api/patient/qr-profile?token=${payload}`);
     }
   }, [patient.id]);
 
@@ -232,6 +262,18 @@ export default function QRCardPage() {
     );
   };
 
+  const handleCopyShortId = () => {
+    const shortId = profile?.patientProfile?.qrCodeId;
+    if (shortId) {
+      navigator.clipboard.writeText(shortId).then(
+        () => toast.success('Unique ID copied to clipboard!'),
+        () => toast.error('Failed to copy ID')
+      );
+    } else {
+      toast.error('Unique ID is still pending. Try refreshing the page.');
+    }
+  };
+
   return (
     <motion.div
       variants={stagger}
@@ -339,7 +381,9 @@ export default function QRCardPage() {
                     </div>
 
                     <div className="relative z-10 flex items-center justify-between">
-                      <p className="text-[10px] opacity-50">ID: {patient.id.slice(0, 4)}••••••••{patient.id.slice(-4)}</p>
+                      <p className="text-[10px] opacity-70 font-mono tracking-widest">
+                        ID: {profile?.patientProfile?.qrCodeId || 'PENDING'}
+                      </p>
                       <p className="text-[10px] opacity-50">Tap to flip</p>
                     </div>
                   </div>
@@ -497,18 +541,22 @@ export default function QRCardPage() {
           </Card>
 
           {/* Actions */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Button variant="outline" className="gap-2 text-xs" onClick={handleDownload}>
               <Download className="h-4 w-4" />
-              Download PNG
+              Download
             </Button>
             <Button variant="outline" className="gap-2 text-xs" onClick={handlePrint}>
               <Printer className="h-4 w-4" />
-              Print Card
+              Print
             </Button>
             <Button variant="outline" className="gap-2 text-xs" onClick={handleShareLink}>
               <Share2 className="h-4 w-4" />
-              Share Link
+              Share
+            </Button>
+            <Button variant="outline" className="gap-2 text-xs" onClick={handleCopyShortId}>
+              <Copy className="h-4 w-4" />
+              Copy ID
             </Button>
           </div>
 
