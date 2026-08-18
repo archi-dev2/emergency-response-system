@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Heart,
   Mail,
@@ -16,7 +16,6 @@ import {
   Cross,
   Stethoscope,
   Quote,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,8 @@ import { DEMO_PASSWORD } from '@/lib/constants';
 import { DASHBOARD_STATS } from '@/lib/mock-data';
 import type { PageRoute, Role } from '@/types';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import LanguageSelector from '@/components/landing/LanguageSelector';
 
 const ROLE_DASHBOARD_MAP: Record<Role, PageRoute> = {
   PATIENT: 'dashboard',
@@ -39,7 +40,7 @@ const ROLE_DASHBOARD_MAP: Record<Role, PageRoute> = {
 };
 
 interface DemoAccount {
-  label: string;
+  role: Role;
   email: string;
   icon: React.ReactNode;
   color: string;
@@ -49,7 +50,7 @@ interface DemoAccount {
 
 const DEMO_ACCOUNTS: DemoAccount[] = [
   {
-    label: 'Patient',
+    role: 'PATIENT',
     email: 'patient@lifelink.com',
     icon: <User className="size-4" />,
     color: 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600',
@@ -57,7 +58,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     description: 'Arjun Mehta',
   },
   {
-    label: 'Driver',
+    role: 'DRIVER',
     email: 'driver@lifelink.com',
     icon: <Truck className="size-4" />,
     color: 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600',
@@ -65,7 +66,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     description: 'Rajesh Kumar',
   },
   {
-    label: 'Hospital',
+    role: 'HOSPITAL_STAFF',
     email: 'hospital@lifelink.com',
     icon: <Building2 className="size-4" />,
     color: 'border-violet-200 dark:border-violet-800 hover:border-violet-400 dark:hover:border-violet-600',
@@ -73,7 +74,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     description: 'Dr. Ananya Gupta',
   },
   {
-    label: 'Admin',
+    role: 'ADMIN',
     email: 'admin@lifelink.com',
     icon: <ShieldCheck className="size-4" />,
     color: 'border-rose-200 dark:border-rose-800 hover:border-rose-400 dark:hover:border-rose-600',
@@ -82,7 +83,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
-// Floating medical icons for the illustration area
 const FLOATING_ICONS = [
   { Icon: Cross, className: 'top-[15%] left-[10%]', delay: 0, duration: 7 },
   { Icon: Stethoscope, className: 'top-[25%] right-[15%]', delay: 1, duration: 8 },
@@ -100,36 +100,37 @@ function AnimatedStat({ value, label, suffix }: { value: number; label: string; 
       transition={{ duration: 0.5, delay: 0.6 }}
       className="text-center"
     >
-      <div className="text-3xl font-bold text-white">
-        {suffix === '+' ? `${value.toLocaleString()}+` : value.toLocaleString()}
+      <div className="text-3xl font-black text-white">
+        {value.toLocaleString()}
+        {suffix}
       </div>
-      <div className="text-sm text-white/70 mt-1">{label}</div>
+      <div className="text-xs text-white/60 font-medium mt-1">{label}</div>
     </motion.div>
   );
 }
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const formRef = useRef<HTMLFormElement>(null);
 
-  // Auth and navigation from stores for reliable direct calls
+  const formRef = useRef<HTMLFormElement>(null);
   const login = useAuthStore((s) => s.login);
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage);
 
-  const performLogin = async (loginEmail: string, loginPassword: string) => {
-    const success = await login(loginEmail, loginPassword);
+  const performLogin = async (userEmail: string, userPass: string) => {
+    const success = await login(userEmail, userPass);
     if (success) {
       const user = useAuthStore.getState().user;
       if (user) {
         const dashboardPage = ROLE_DASHBOARD_MAP[user.role];
         setCurrentPage(dashboardPage);
-        toast.success(`Welcome back, ${user.name}!`);
+        toast.success(`${t.common?.success ?? 'Welcome back'}, ${user.name}!`);
       }
       return true;
     }
@@ -141,21 +142,21 @@ export default function LoginPage() {
     setLoginError('');
 
     if (!email.trim()) {
-      toast.error('Please enter your email address');
+      toast.error(t.login?.errorEmail ?? 'Please enter your email address');
       return;
     }
     if (!password.trim()) {
-      toast.error('Please enter your password');
+      toast.error(t.login?.errorPassword ?? 'Please enter your password');
       return;
     }
 
     setIsLoading(true);
-
     const success = await performLogin(email, password);
 
     if (!success) {
-      setLoginError('Invalid email or password');
-      toast.error('Invalid email or password');
+      const err = t.login?.errorInvalidCredentials ?? 'Invalid email or password';
+      setLoginError(err);
+      toast.error(err);
     }
 
     setIsLoading(false);
@@ -170,8 +171,9 @@ export default function LoginPage() {
     const success = await performLogin(demoEmail, DEMO_PASSWORD);
 
     if (!success) {
-      setLoginError('Invalid email or password');
-      toast.error('Login failed. Please try again.');
+      const err = t.login?.errorInvalidCredentials ?? 'Invalid email or password';
+      setLoginError(err);
+      toast.error(err);
     }
 
     setIsLoading(false);
@@ -179,10 +181,10 @@ export default function LoginPage() {
 
   const handleForgotPassword = () => {
     if (!resetEmail.trim()) {
-      toast.error('Please enter your email address');
+      toast.error(t.login?.errorEmail ?? 'Please enter your email address');
       return;
     }
-    toast.success('Password reset link sent to your email!');
+    toast.success(t.login?.resetPasswordDesc ?? 'Password reset link sent to your email!');
     setForgotPasswordOpen(false);
     setResetEmail('');
   };
@@ -190,19 +192,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branded Illustration Area */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden items-center justify-center"
+      <div
+        className="hidden lg:flex lg:w-[55%] relative overflow-hidden items-center justify-center"
         style={{
           background: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 25%, #450a0a 60%, #1c0a0a 100%)',
         }}
       >
-        {/* Animated floating circles / particles (CSS only) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Large ambient circles */}
           <div className="absolute top-16 left-16 w-72 h-72 rounded-full bg-white/[0.03] blur-3xl animate-float" />
           <div className="absolute bottom-16 right-16 w-96 h-96 rounded-full bg-rose-500/[0.06] blur-3xl animate-float-delayed" />
           <div className="absolute top-1/3 right-1/4 w-48 h-48 rounded-full bg-orange-500/[0.04] blur-2xl animate-float-slow" />
 
-          {/* Floating medical icons */}
           {FLOATING_ICONS.map(({ Icon, className, delay, duration }, idx) => (
             <div
               key={idx}
@@ -215,7 +215,6 @@ export default function LoginPage() {
             </div>
           ))}
 
-          {/* Animated dashed ring */}
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-dashed border-white/[0.06]"
             style={{ animation: 'spin 60s linear infinite' }}
@@ -227,7 +226,6 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 px-16 text-center max-w-xl">
-          {/* Logo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -239,7 +237,6 @@ export default function LoginPage() {
             </div>
           </motion.div>
 
-          {/* Brand Name */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,7 +252,7 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="text-xl text-white/80 mb-2 font-medium"
           >
-            Every Second Matters
+            {t.hero?.headline3 ?? 'Every Second Matters'}
           </motion.p>
 
           <motion.p
@@ -264,7 +261,7 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="text-sm text-white/50 mb-12"
           >
-            Smart Emergency Medical Response System
+            {t.hero?.descriptionHighlight ?? 'Smart Emergency Medical Response System'}
           </motion.p>
 
           {/* Stats */}
@@ -274,10 +271,10 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="grid grid-cols-2 gap-8 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
           >
-            <AnimatedStat value={DASHBOARD_STATS.totalLivesSaved} label="Lives Saved" suffix="+" />
-            <AnimatedStat value={DASHBOARD_STATS.hospitalsOnline} label="Hospitals Online" />
-            <AnimatedStat value={DASHBOARD_STATS.ambulancesOnline} label="Ambulances Active" />
-            <AnimatedStat value={DASHBOARD_STATS.avgResponseTime} label="Avg Response (min)" />
+            <AnimatedStat value={DASHBOARD_STATS.totalLivesSaved} label={t.hero?.statLivesSaved ?? 'Lives Saved'} suffix="+" />
+            <AnimatedStat value={DASHBOARD_STATS.hospitalsOnline} label={t.hero?.statHospitals ?? 'Hospitals Online'} />
+            <AnimatedStat value={DASHBOARD_STATS.ambulancesOnline} label={t.liveFeed?.statAmbulances ?? 'Ambulances Active'} />
+            <AnimatedStat value={DASHBOARD_STATS.avgResponseTime} label={t.hero?.statResponse ?? 'Avg Response (min)'} />
           </motion.div>
 
           {/* Trust badges */}
@@ -289,7 +286,7 @@ export default function LoginPage() {
           >
             <div className="flex items-center gap-2 text-white/40 text-xs">
               <Shield className="size-4" />
-              <span>HIPAA Compliant</span>
+              <span>{t.hero?.trustHipaa ?? 'HIPAA Compliant'}</span>
             </div>
             <div className="flex items-center gap-2 text-white/40 text-xs">
               <ShieldCheck className="size-4" />
@@ -297,7 +294,7 @@ export default function LoginPage() {
             </div>
           </motion.div>
 
-          {/* Testimonial quote at bottom */}
+          {/* Testimonial quote */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -306,30 +303,33 @@ export default function LoginPage() {
           >
             <Quote className="size-5 text-white/20 mx-auto mb-3" />
             <p className="text-sm text-white/50 italic leading-relaxed">
-              &ldquo;LifeLink saved my father&apos;s life. The ambulance arrived in under 4 minutes.&rdquo;
+              &ldquo;{t.testimonials?.items?.priya?.text ?? 'LifeLink saved my father\'s life. The ambulance arrived in under 4 minutes.'}&rdquo;
             </p>
-            <p className="text-xs text-white/30 mt-2">— Priya M., Verified Patient</p>
+            <p className="text-xs text-white/30 mt-2">— {t.testimonials?.items?.priya?.role ?? 'Verified Patient'}</p>
           </motion.div>
         </div>
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-8 bg-background">
+      <div className="w-full lg:w-[45%] flex flex-col justify-between p-6 sm:p-8 bg-background overflow-y-auto">
+        {/* Top Bar: Back button + Language selector */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto mb-6">
+          <button
+            onClick={() => useNavigationStore.getState().setCurrentPage('landing')}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-4" />
+            {t.login?.backToHome ?? 'Back to Home'}
+          </button>
+          <LanguageSelector variant="outline" size="sm" />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="w-full max-w-md"
+          className="w-full max-w-md mx-auto"
         >
-          {/* Back to Home */}
-          <button
-            onClick={() => useNavigationStore.getState().setCurrentPage('landing')}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Home
-          </button>
-
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary">
@@ -343,9 +343,9 @@ export default function LoginPage() {
 
           {/* Header */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Sign In</h2>
+            <h2 className="text-2xl font-bold tracking-tight">{t.login?.heading ?? 'Sign In'}</h2>
             <p className="text-muted-foreground mt-1">
-              Enter your credentials to access your account
+              {t.login?.subheading ?? 'Enter your credentials to access your account'}
             </p>
           </div>
 
@@ -358,13 +358,13 @@ export default function LoginPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Google
+              {t.login?.googleBtn ?? 'Google'}
             </Button>
             <Button variant="outline" className="h-11 gap-2 font-normal text-sm" type="button">
               <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
               </svg>
-              Apple
+              {t.login?.appleBtn ?? 'Apple'}
             </Button>
           </div>
 
@@ -375,7 +375,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-3 text-muted-foreground">
-                or continue with email
+                {t.login?.orEmail ?? 'or continue with email'}
               </span>
             </div>
           </div>
@@ -384,13 +384,13 @@ export default function LoginPage() {
           <form ref={formRef} onSubmit={handleLogin} className="space-y-4">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.login?.emailLabel ?? 'Email'}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.login?.emailPlaceholder ?? "you@example.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -402,7 +402,7 @@ export default function LoginPage() {
             {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.login?.passwordLabel ?? 'Password'}</Label>
                 <button
                   type="button"
                   onClick={() => {
@@ -411,7 +411,7 @@ export default function LoginPage() {
                   }}
                   className="text-xs text-primary hover:underline"
                 >
-                  Forgot Password?
+                  {t.login?.forgotPassword ?? 'Forgot Password?'}
                 </button>
               </div>
               <div className="relative">
@@ -419,7 +419,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t.login?.passwordPlaceholder ?? 'Enter your password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -436,7 +436,7 @@ export default function LoginPage() {
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
               />
               <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                Remember me for 30 days
+                {t.login?.rememberMe ?? 'Remember me for 30 days'}
               </Label>
             </div>
 
@@ -454,10 +454,10 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Signing in...
+                  {t.login?.signingIn ?? 'Signing in...'}
                 </div>
               ) : (
-                'Sign In'
+                t.login?.signIn ?? 'Sign In'
               )}
             </Button>
           </form>
@@ -469,60 +469,73 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Quick Demo Access
+                {t.login?.demoAccess ?? 'Quick Demo Access'}
               </span>
             </div>
           </div>
 
           {/* Demo Account Cards */}
           <div className="grid grid-cols-2 gap-2 mb-6">
-            {DEMO_ACCOUNTS.map((account, idx) => (
-              <motion.button
-                key={account.label}
-                type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.7 + idx * 0.08 }}
-                onClick={() => handleDemoClick(account.email)}
-                className={cn(
-                  'flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-200 group',
-                  'hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
-                  account.color,
-                  email === account.email && 'ring-2 ring-primary/30 shadow-md bg-muted/30',
-                )}
-              >
-                <div className={cn(
-                  'flex items-center justify-center size-8 rounded-full text-white text-xs font-bold shrink-0',
-                  account.avatarColor,
-                )}>
-                  {account.description.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium block truncate">{account.label}</span>
-                  <span className="text-[10px] text-muted-foreground truncate block">{account.description}</span>
-                </div>
-                <svg className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </motion.button>
-            ))}
+            {DEMO_ACCOUNTS.map((account, idx) => {
+              const roleKeyMap: Record<Role, 'patient' | 'driver' | 'hospitalStaff' | 'admin'> = {
+                PATIENT: 'patient',
+                DRIVER: 'driver',
+                HOSPITAL_STAFF: 'hospitalStaff',
+                ADMIN: 'admin',
+              };
+              const roleLabel = t.sidebar?.roleLabels?.[roleKeyMap[account.role]] ?? account.role;
+              return (
+                <motion.button
+                  key={account.role}
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.7 + idx * 0.08 }}
+                  onClick={() => handleDemoClick(account.email)}
+                  className={cn(
+                    'flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-200 group',
+                    'hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
+                    account.color,
+                    email === account.email && 'ring-2 ring-primary/30 shadow-md bg-muted/30',
+                  )}
+                >
+                  <div className={cn(
+                    'flex items-center justify-center size-8 rounded-full text-white text-xs font-bold shrink-0',
+                    account.avatarColor,
+                  )}>
+                    {account.description.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium block truncate">{roleLabel}</span>
+                    <span className="text-[10px] text-muted-foreground truncate block">{account.description}</span>
+                  </div>
+                  <svg className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </motion.button>
+              );
+            })}
           </div>
 
           <p className="text-xs text-muted-foreground text-center mb-6">
-            Password is pre-filled: <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{DEMO_PASSWORD}</code>
+            {t.login?.demoPasswordNote ?? 'Password is pre-filled:'} <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{DEMO_PASSWORD}</code>
           </p>
 
           {/* Sign Up Link */}
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t.login?.noAccount ?? "Don't have an account?"}{' '}
             <button
               onClick={() => useNavigationStore.getState().setCurrentPage('signup')}
               className="text-primary font-medium hover:underline"
             >
-              Sign Up
+              {t.login?.signUp ?? 'Sign Up'}
             </button>
           </p>
         </motion.div>
+
+        <div className="py-4 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} LifeLink
+        </div>
       </div>
 
       {/* Forgot Password Dialog */}
@@ -533,15 +546,15 @@ export default function LoginPage() {
               <div className="p-1.5 rounded-lg bg-primary/10">
                 <Lock className="size-4 text-primary" />
               </div>
-              Reset Password
+              {t.login?.resetPasswordTitle ?? 'Reset Password'}
             </DialogTitle>
             <DialogDescription>
-              Enter your email address and we&apos;ll send you a link to reset your password.
+              {t.login?.resetPasswordDesc ?? "Enter your email address and we'll send you a link to reset your password."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="reset-email">Email Address</Label>
+              <Label htmlFor="reset-email">{t.login?.emailLabel ?? 'Email Address'}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
@@ -557,28 +570,14 @@ export default function LoginPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setForgotPasswordOpen(false)}>
-              Cancel
+              {t.login?.cancel ?? 'Cancel'}
             </Button>
             <Button onClick={handleForgotPassword}>
-              Send Reset Link
+              {t.login?.sendResetLink ?? 'Send Reset Link'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* CSS-only floating animation keyframes */}
-      <style jsx global>{`
-        @keyframes float-icon {
-          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.08; }
-          25% { transform: translateY(-20px) rotate(5deg); opacity: 0.12; }
-          50% { transform: translateY(-10px) rotate(-3deg); opacity: 0.08; }
-          75% { transform: translateY(-25px) rotate(3deg); opacity: 0.1; }
-        }
-        @keyframes spin {
-          from { transform: translate(-50%, -50%) rotate(0deg); }
-          to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -3,105 +3,100 @@
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard,
-  Siren,
-  Navigation,
-  Building2,
-  FileHeart,
-  QrCode,
-  Bell,
-  MessageSquare,
-  UserCircle,
-  ClipboardList,
-  Map,
-  AlertTriangle,
-  BedDouble,
-  UserPlus,
-  BarChart3,
-  Users,
-  Truck,
-  Bot,
+  Heart,
   LogOut,
   ChevronsLeft,
   ChevronsRight,
-  Heart,
   Activity,
-  IndianRupee,
-  History,
-  Car,
-  Stethoscope,
-  Pill,
-  TrendingUp,
-  FileBarChart,
-  Settings,
-  Calendar,
-  HelpCircle,
-  ShoppingBag,
-  PackageOpen,
-  CalendarCheck,
-  CalendarClock,
+  LayoutDashboard,
+  Bell,
+  User,
+  Shield,
+  Truck,
+  Building2,
+  FileText,
   MapPin,
-  ShieldCheck,
-  Banknote,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Flame,
+  Hospital,
+  DollarSign,
+  Users,
+  Settings,
+  ShieldAlert,
+  BarChart3,
+  Calendar,
+  Layers,
+  History,
+  QrCode,
+  Radio,
+  FileBadge,
 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useNavigationStore, useAuthStore, useUIStore } from '@/store';
+import { useAuthStore } from '@/store';
+import { useNavigationStore } from '@/store';
+import { useUIStore } from '@/store';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
 import type { NavItem, PageRoute, Role } from '@/types';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
-// Icon map for string-based icon references from constants
-const ICON_MAP: Record<string, React.ElementType> = {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
-  Siren,
-  Navigation,
-  Building2,
-  FileHeart,
-  QrCode,
   Bell,
-  MessageSquare,
-  UserCircle,
-  ClipboardList,
-  Map,
-  AlertTriangle,
-  BedDouble,
-  UserPlus,
-  BarChart3,
-  Users,
+  User,
+  Shield,
   Truck,
-  Bot,
-  IndianRupee,
-  History,
-  Car,
-  Stethoscope,
-  Pill,
-  TrendingUp,
-  FileBarChart,
-  Settings,
-  Calendar,
-  HelpCircle,
-  ShoppingBag,
-  PackageOpen,
-  CalendarCheck,
-  CalendarClock,
+  Building2,
+  FileText,
   MapPin,
-  ShieldCheck,
-  Banknote,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Flame,
+  Hospital,
+  DollarSign,
+  Users,
+  Settings,
+  ShieldAlert,
+  BarChart3,
+  Calendar,
+  Layers,
+  History,
+  QrCode,
+  Radio,
+  FileBadge,
 };
 
 const ROLE_COLORS: Record<Role, { bg: string; text: string; dot: string }> = {
-  PATIENT: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-  DRIVER: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
-  HOSPITAL_STAFF: { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-400', dot: 'bg-violet-500' },
-  ADMIN: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400', dot: 'bg-rose-500' },
-};
-
-const ROLE_LABELS: Record<Role, string> = {
-  PATIENT: 'Patient',
-  DRIVER: 'Ambulance Driver',
-  HOSPITAL_STAFF: 'Hospital Staff',
-  ADMIN: 'Administrator',
+  PATIENT: {
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+    text: 'text-emerald-700 dark:text-emerald-400',
+    dot: 'bg-emerald-500',
+  },
+  DRIVER: {
+    bg: 'bg-amber-500/10 dark:bg-amber-500/20',
+    text: 'text-amber-700 dark:text-amber-400',
+    dot: 'bg-amber-500',
+  },
+  HOSPITAL_STAFF: {
+    bg: 'bg-violet-500/10 dark:bg-violet-500/20',
+    text: 'text-violet-700 dark:text-violet-400',
+    dot: 'bg-violet-500',
+  },
+  ADMIN: {
+    bg: 'bg-rose-500/10 dark:bg-rose-500/20',
+    text: 'text-rose-700 dark:text-rose-400',
+    dot: 'bg-rose-500',
+  },
 };
 
 const AVATAR_COLORS = [
@@ -131,39 +126,41 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-// Categorize nav items into sections
-function categorizeNavItems(items: NavItem[]): { label: string; items: NavItem[] }[] {
-  const sections: { label: string; items: NavItem[] }[] = [];
-  const mainItems = items.filter((item) => !item.emergency);
-  const emergencyItems = items.filter((item) => item.emergency);
-
-  if (mainItems.length > 0) {
-    sections.push({ label: 'Main', items: mainItems });
-  }
-  if (emergencyItems.length > 0) {
-    sections.push({ label: 'Emergency', items: emergencyItems });
-  }
-
-  return sections;
-}
-
 interface SidebarProps {
   collapsed?: boolean;
   onToggle?: () => void;
 }
 
 export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: SidebarProps) {
+  const { t } = useLanguage();
   const { currentPage, sidebarOpen, toggleSidebar, setCurrentPage } = useNavigationStore();
   const { user } = useAuthStore();
   const unreadCount = useUIStore((s) => s.unreadCount);
 
   const isCollapsed = controlledCollapsed ?? !sidebarOpen;
 
+  const roleLabels: Record<Role, string> = {
+    PATIENT: t.sidebar?.roleLabels?.patient ?? 'Patient',
+    DRIVER: t.sidebar?.roleLabels?.driver ?? 'Ambulance Driver',
+    HOSPITAL_STAFF: t.sidebar?.roleLabels?.hospitalStaff ?? 'Hospital Staff',
+    ADMIN: t.sidebar?.roleLabels?.admin ?? 'Administrator',
+  };
+
   const navSections = useMemo(() => {
     if (!user) return [];
     const items = NAVIGATION_ITEMS[user.role] ?? [];
-    return categorizeNavItems(items);
-  }, [user]);
+    const mainItems = items.filter((item: NavItem) => !item.emergency);
+    const emergencyItems = items.filter((item: NavItem) => item.emergency);
+
+    const sections: { label: string; items: NavItem[] }[] = [];
+    if (mainItems.length > 0) {
+      sections.push({ label: t.sidebar?.sectionMain ?? 'Main', items: mainItems });
+    }
+    if (emergencyItems.length > 0) {
+      sections.push({ label: t.sidebar?.sectionEmergency ?? 'Emergency', items: emergencyItems });
+    }
+    return sections;
+  }, [user, t.sidebar?.sectionMain, t.sidebar?.sectionEmergency]);
 
   const handleLogout = () => {
     useAuthStore.getState().logout();
@@ -205,7 +202,7 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
                 <span className="text-base font-bold leading-tight">LifeLink</span>
                 <span className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
                   <Activity className="size-2.5 text-primary" />
-                  Every Second Matters
+                  {t.sidebar?.tagline ?? 'Every Second Matters'}
                 </span>
               </motion.div>
             )}
@@ -225,7 +222,6 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
               >
                 {initials}
               </div>
-              {/* Online indicator */}
               <div className="absolute -bottom-0.5 -right-0.5 size-3.5 bg-background rounded-full flex items-center justify-center">
                 <div className="size-2.5 rounded-full bg-emerald-500 ring-1 ring-background" />
               </div>
@@ -249,7 +245,7 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
                         roleColor.text,
                       )}
                     >
-                      {ROLE_LABELS[user.role]}
+                      {roleLabels[user.role]}
                     </span>
                   </div>
                 </motion.div>
@@ -262,7 +258,6 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
         <nav className="flex-1 overflow-y-auto py-3 px-2 scrollbar-thin">
           {navSections.map((section) => (
             <div key={section.label} className="mb-3 last:mb-0">
-              {/* Section Divider Label */}
               {!isCollapsed && (
                 <div className="flex items-center gap-2 px-3 mb-2">
                   <Separator className="flex-1" />
@@ -300,73 +295,65 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
                         isCollapsed && !isActive && 'hover:bg-accent/50',
                       )}
                     >
-                      {/* Active indicator bar for collapsed mode */}
-                      {isCollapsed && isActive && (
-                        <motion.div
-                          layoutId={`sidebar-active-collapsed-${item.route}`}
+                      <div className="relative shrink-0">
+                        <Icon
                           className={cn(
-                            'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full',
-                            isEmergency ? 'bg-destructive' : 'bg-primary',
+                            'size-5 transition-colors',
+                            isActive
+                              ? isEmergency
+                                ? 'text-destructive'
+                                : 'text-primary'
+                              : isEmergency
+                                ? 'text-destructive/70 group-hover:text-destructive'
+                                : 'text-muted-foreground group-hover:text-foreground',
                           )}
-                          initial={{ height: 0 }}
-                          animate={{ height: 24 }}
-                          transition={{ duration: 0.2 }}
                         />
-                      )}
-
-                      <Icon
-                        className={cn(
-                          'size-5 shrink-0 transition-colors',
-                          isActive && (isEmergency ? 'text-destructive' : 'text-primary'),
-                          isEmergency && !isActive && 'text-destructive/70',
+                        {isNotifications && unreadCount > 0 && isCollapsed && (
+                          <span className="absolute -top-1 -right-1 size-2 rounded-full bg-destructive animate-pulse" />
                         )}
-                      />
+                      </div>
 
                       <AnimatePresence>
                         {!isCollapsed && (
-                          <motion.span
+                          <motion.div
                             initial={{ opacity: 0, width: 0 }}
                             animate={{ opacity: 1, width: 'auto' }}
                             exit={{ opacity: 0, width: 0 }}
                             transition={{ duration: 0.15 }}
-                            className="overflow-hidden whitespace-nowrap truncate"
+                            className="overflow-hidden whitespace-nowrap flex-1 text-left flex items-center justify-between"
                           >
-                            {item.label}
-                          </motion.span>
+                            <span>{item.label}</span>
+                            {isNotifications && unreadCount > 0 && (
+                              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] font-bold rounded-full">
+                                {unreadCount}
+                              </Badge>
+                            )}
+                            {item.badge && !isNotifications && (
+                              <Badge
+                                variant={isEmergency ? 'destructive' : 'secondary'}
+                                className="h-5 px-1.5 text-[10px] font-bold rounded-full"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </motion.div>
                         )}
                       </AnimatePresence>
-
-                      {/* Notification Badge */}
-                      {isNotifications && unreadCount > 0 && (
-                        <span
-                          className={cn(
-                            'flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive text-white text-[10px] font-bold shrink-0',
-                            isCollapsed ? 'absolute -top-1 -right-1' : 'ml-auto',
-                          )}
-                        >
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                      )}
-
-                      {/* Badge count for other items */}
-                      {!isNotifications && item.badge && item.badge > 0 && !isCollapsed && (
-                        <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold px-1.5">
-                          {item.badge}
-                        </span>
-                      )}
                     </button>
                   );
 
-                  // Tooltip for collapsed state
                   if (isCollapsed) {
                     return (
                       <li key={item.route}>
                         <Tooltip>
-                          <TooltipTrigger asChild>
-                            {navButton}
-                          </TooltipTrigger>
-                          <TooltipContent side="right" sideOffset={8}>
-                            {item.label}
+                          <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                          <TooltipContent side="right" sideOffset={8} className="flex items-center gap-2">
+                            <span>{item.label}</span>
+                            {isNotifications && unreadCount > 0 && (
+                              <Badge variant="destructive" className="h-4 px-1 text-[9px] font-bold rounded-full">
+                                {unreadCount}
+                              </Badge>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       </li>
@@ -402,7 +389,7 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
                       transition={{ duration: 0.15 }}
                       className="overflow-hidden whitespace-nowrap"
                     >
-                      Logout
+                      {t.sidebar?.logout ?? 'Logout'}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -410,7 +397,7 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right" sideOffset={8}>
-                Logout
+                {t.sidebar?.logout ?? 'Logout'}
               </TooltipContent>
             )}
           </Tooltip>
@@ -432,14 +419,14 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: Si
                 ) : (
                   <>
                     <ChevronsLeft className="size-5 shrink-0" />
-                    <span>Collapse</span>
+                    <span>{t.sidebar?.collapse ?? 'Collapse'}</span>
                   </>
                 )}
               </button>
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right" sideOffset={8}>
-                Expand Sidebar
+                {t.sidebar?.expandSidebar ?? 'Expand Sidebar'}
               </TooltipContent>
             )}
           </Tooltip>

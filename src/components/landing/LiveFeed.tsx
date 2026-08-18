@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Siren, MapPin, Clock, CheckCircle2, Ambulance, Building2, Radio } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const FEED_EVENTS = [
   { type: 'sos', city: 'Mumbai', msg: 'SOS activated — ambulance dispatched in 47s', time: '0m ago', icon: Siren, color: 'text-red-500', bg: 'bg-red-500/10' },
@@ -39,10 +40,10 @@ function FeedRow({ item }: { item: FeedItem }) {
 }
 
 export default function LiveFeed() {
+  const { t } = useLanguage();
   const [feed, setFeed] = useState(FEED_EVENTS.slice(0, 5));
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [, setActiveIndex] = useState(0);
 
-  // Rotate in new events periodically
   useEffect(() => {
     const id = setInterval(() => {
       setActiveIndex((prev) => {
@@ -53,6 +54,12 @@ export default function LiveFeed() {
     }, 3500);
     return () => clearInterval(id);
   }, []);
+
+  const stats = [
+    { icon: Siren, value: '47', label: t.liveFeed?.statActive ?? 'Active now', color: 'text-red-500 bg-red-500/10' },
+    { icon: Ambulance, value: '312', label: t.liveFeed?.statAmbulances ?? 'Ambulances online', color: 'text-blue-500 bg-blue-500/10' },
+    { icon: Building2, value: '218', label: t.liveFeed?.statHospitals ?? 'Hospitals linked', color: 'text-emerald-500 bg-emerald-500/10' },
+  ];
 
   return (
     <section className="py-20 sm:py-28 bg-muted/30 border-y border-border/40">
@@ -72,25 +79,20 @@ export default function LiveFeed() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emergency opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emergency" />
               </span>
-              Live Network Activity
+              {t.liveFeed?.badge ?? 'Live Network Activity'}
             </span>
 
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-              Our network{' '}
-              <span className="gradient-text">never sleeps.</span>
+              {t.liveFeed?.heading ?? 'Our network'}{' '}
+              <span className="gradient-text">{t.liveFeed?.headingGradient ?? 'never sleeps.'}</span>
             </h2>
 
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Across 200+ cities, LifeLink coordinates thousands of emergency responses 24/7 —
-              connecting patients with the right care in under 4 minutes on average.
+              {t.liveFeed?.description ?? 'Across 200+ cities, LifeLink coordinates thousands of emergency responses 24/7 — connecting patients with the right care in under 4 minutes on average.'}
             </p>
 
             <div className="grid grid-cols-3 gap-4 pt-2">
-              {[
-                { icon: Siren, value: '47', label: 'Active now', color: 'text-red-500 bg-red-500/10' },
-                { icon: Ambulance, value: '312', label: 'Ambulances online', color: 'text-blue-500 bg-blue-500/10' },
-                { icon: Building2, value: '218', label: 'Hospitals linked', color: 'text-emerald-500 bg-emerald-500/10' },
-              ].map((s) => (
+              {stats.map((s) => (
                 <div key={s.label} className="rounded-2xl border border-border/60 bg-card p-4 text-center">
                   <div className={`mx-auto mb-2 w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                     <s.icon className="w-5 h-5" />
@@ -113,14 +115,14 @@ export default function LiveFeed() {
               {/* Feed header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-muted/30">
                 <Radio className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">Live Emergency Feed</span>
+                <span className="text-sm font-semibold">{t.liveFeed?.feedHeader ?? 'Live Emergency Feed'}</span>
                 <motion.div
                   className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold"
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  LIVE
+                  {t.liveFeed?.liveBadge ?? 'LIVE'}
                 </motion.div>
               </div>
 
@@ -144,7 +146,7 @@ export default function LiveFeed() {
               {/* Footer */}
               <div className="px-4 py-2.5 border-t border-border/40 bg-muted/20 flex items-center gap-2">
                 <MapPin className="w-3 h-3 text-muted-foreground/50" />
-                <span className="text-[10px] text-muted-foreground/50">Showing live events across India · Updated in real-time</span>
+                <span className="text-[10px] text-muted-foreground/50">{t.liveFeed?.feedFooter ?? 'Showing live events across India · Updated in real-time'}</span>
               </div>
             </div>
           </motion.div>
