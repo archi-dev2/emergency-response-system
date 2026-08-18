@@ -168,7 +168,7 @@ export default function QRCardPage() {
       ctx.fillText('Patient Name', 40, 100);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 28px Inter, system-ui, sans-serif';
-      ctx.fillText(patient.name, 40, 135);
+      ctx.fillText(user?.name ?? 'Unknown', 40, 135);
 
       // Blood group
       ctx.fillStyle = 'rgba(255,255,255,0.6)';
@@ -178,7 +178,7 @@ export default function QRCardPage() {
       ctx.fillRect(40, 190, 140, 50);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 32px Inter, system-ui, sans-serif';
-      ctx.fillText(BLOOD_GROUP_LABELS[patient.bloodGroup || 'O_POS'], 60, 225);
+      ctx.fillText(BLOOD_GROUP_LABELS[(user?.bloodGroup as string) || 'O_POS'], 60, 225);
 
       // Draw QR code from SVG
       const svgElement = document.querySelector('#qr-download-source');

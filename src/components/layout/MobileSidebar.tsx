@@ -33,6 +33,7 @@ import { useNavigationStore, useAuthStore, useUIStore } from '@/store';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
 import type { NavItem, PageRoute, Role } from '@/types';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -59,13 +60,6 @@ const ROLE_COLORS: Record<Role, { bg: string; text: string }> = {
   DRIVER: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' },
   HOSPITAL_STAFF: { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-400' },
   ADMIN: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400' },
-};
-
-const ROLE_LABELS: Record<Role, string> = {
-  PATIENT: 'Patient',
-  DRIVER: 'Ambulance Driver',
-  HOSPITAL_STAFF: 'Hospital Staff',
-  ADMIN: 'Administrator',
 };
 
 const AVATAR_COLORS = [
@@ -101,9 +95,17 @@ interface MobileSidebarProps {
 }
 
 export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
+  const { t } = useLanguage();
   const { currentPage, setCurrentPage } = useNavigationStore();
   const { user } = useAuthStore();
   const unreadCount = useUIStore((s) => s.unreadCount);
+
+  const roleLabels: Record<Role, string> = {
+    PATIENT: t.sidebar?.roleLabels?.patient ?? 'Patient',
+    DRIVER: t.sidebar?.roleLabels?.driver ?? 'Ambulance Driver',
+    HOSPITAL_STAFF: t.sidebar?.roleLabels?.hospitalStaff ?? 'Hospital Staff',
+    ADMIN: t.sidebar?.roleLabels?.admin ?? 'Administrator',
+  };
 
   const navItems: NavItem[] = useMemo(() => {
     if (!user) return [];
@@ -158,7 +160,7 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
                   roleColor.text,
                 )}
               >
-                {ROLE_LABELS[user.role]}
+                {roleLabels[user.role]}
               </span>
             </div>
           </div>
@@ -229,7 +231,7 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/5 hover:text-destructive transition-all"
           >
             <LogOut className="size-5 shrink-0" />
-            <span>Logout</span>
+            <span>{t.sidebar?.logout ?? 'Logout'}</span>
           </button>
         </div>
       </SheetContent>

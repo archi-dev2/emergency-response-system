@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, Clock, Heart, Truck, Shield } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface VideoCard {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   duration: string;
   thumbnail: string;
   youtubeId: string;
-  tag: string;
+  tagKey: string;
   tagColor: string;
   icon: React.ElementType;
   iconColor: string;
@@ -20,36 +21,36 @@ interface VideoCard {
 const VIDEOS: VideoCard[] = [
   {
     id: 'v1',
-    title: 'How Emergency Response Works',
-    description: 'See how LifeLink connects patients with ambulances and hospitals in real-time during a medical emergency.',
+    titleKey: 'v1Title',
+    descKey: 'v1Desc',
     duration: '3:42',
     thumbnail: 'https://img.youtube.com/vi/NmM9HA2MQGI/maxresdefault.jpg',
     youtubeId: 'NmM9HA2MQGI',
-    tag: 'How It Works',
+    tagKey: 'v1Tag',
     tagColor: 'bg-red-500',
     icon: Heart,
     iconColor: 'text-red-400',
   },
   {
     id: 'v2',
-    title: 'Ambulance Dispatch Technology',
-    description: 'Explore the AI-powered dispatch system that assigns the nearest ambulance within seconds.',
+    titleKey: 'v2Title',
+    descKey: 'v2Desc',
     duration: '5:14',
     thumbnail: 'https://img.youtube.com/vi/CqoV0YBIJQA/maxresdefault.jpg',
     youtubeId: 'CqoV0YBIJQA',
-    tag: 'Technology',
+    tagKey: 'v2Tag',
     tagColor: 'bg-blue-500',
     icon: Truck,
     iconColor: 'text-blue-400',
   },
   {
     id: 'v3',
-    title: 'Patient Safety & Privacy',
-    description: 'Your medical data is encrypted and only shared with authorized healthcare providers.',
+    titleKey: 'v3Title',
+    descKey: 'v3Desc',
     duration: '2:58',
     thumbnail: 'https://img.youtube.com/vi/YjPFGJMNFj8/maxresdefault.jpg',
     youtubeId: 'YjPFGJMNFj8',
-    tag: 'Security',
+    tagKey: 'v3Tag',
     tagColor: 'bg-emerald-500',
     icon: Shield,
     iconColor: 'text-emerald-400',
@@ -94,7 +95,10 @@ function VideoModal({ videoId, onClose }: { videoId: string; onClose: () => void
 }
 
 export default function VideoShowcase() {
+  const { t } = useLanguage();
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
+
+  const vs = t.videoShowcase;
 
   return (
     <section className="relative py-24 sm:py-32 overflow-hidden">
@@ -121,19 +125,19 @@ export default function VideoShowcase() {
           className="text-center mb-16"
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white/60 mb-5">
-            <Play className="size-3 fill-current" /> See It In Action
+            <Play className="size-3 fill-current" /> {vs?.badge ?? 'See It In Action'}
           </span>
           <h2
             className="font-black text-white tracking-tight"
             style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', lineHeight: 1.1 }}
           >
-            Watch how we&apos;re{' '}
+            {vs?.heading ?? 'Watch how we\'re'}{' '}
             <span style={{ background: 'linear-gradient(135deg, #ef4444, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              saving lives
+              {vs?.headingGradient ?? 'saving lives'}
             </span>
           </h2>
           <p className="mt-4 text-lg text-white/40 max-w-xl mx-auto">
-            Real stories. Real technology. See how LifeLink works from first tap to hospital admission.
+            {vs?.subheading ?? 'Real stories. Real technology. See how LifeLink works from first tap to hospital admission.'}
           </p>
         </motion.div>
 
@@ -141,6 +145,10 @@ export default function VideoShowcase() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {VIDEOS.map((video, i) => {
             const Icon = video.icon;
+            const title = (vs as Record<string, string>)?.[video.titleKey] ?? video.titleKey;
+            const description = (vs as Record<string, string>)?.[video.descKey] ?? video.descKey;
+            const tag = (vs as Record<string, string>)?.[video.tagKey] ?? video.tagKey;
+
             return (
               <motion.div
                 key={video.id}
@@ -160,10 +168,9 @@ export default function VideoShowcase() {
                   {/* Thumbnail image */}
                   <img
                     src={video.thumbnail}
-                    alt={video.title}
+                    alt={title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => {
-                      // Fallback to gradient if image fails
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
@@ -189,7 +196,7 @@ export default function VideoShowcase() {
 
                   {/* Tag */}
                   <div className={`absolute top-3 left-3 z-20 ${video.tagColor} rounded-lg px-2.5 py-1`}>
-                    <span className="text-xs text-white font-semibold">{video.tag}</span>
+                    <span className="text-xs text-white font-semibold">{tag}</span>
                   </div>
                 </div>
 
@@ -199,8 +206,8 @@ export default function VideoShowcase() {
                     <Icon className={`size-4 ${video.iconColor}`} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-sm group-hover:text-white/90 transition-colors">{video.title}</h3>
-                    <p className="text-xs text-white/40 mt-1 leading-relaxed">{video.description}</p>
+                    <h3 className="font-bold text-white text-sm group-hover:text-white/90 transition-colors">{title}</h3>
+                    <p className="text-xs text-white/40 mt-1 leading-relaxed">{description}</p>
                   </div>
                 </div>
               </motion.div>

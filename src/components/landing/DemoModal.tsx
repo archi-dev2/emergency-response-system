@@ -32,6 +32,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface DemoModalProps {
   open: boolean;
@@ -40,8 +41,10 @@ interface DemoModalProps {
 
 interface DemoStep {
   id: number;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
+  fallbackTitle: string;
+  fallbackDesc: string;
   icon: typeof Phone;
   color: string;
   bgGradient: string;
@@ -68,7 +71,6 @@ const slideVariants = {
 function SOSIllustration() {
   return (
     <div className="relative flex items-center justify-center h-full">
-      {/* Pulse rings */}
       <div className="absolute h-40 w-40 rounded-full border-2 border-red-400/30 animate-ping" style={{ animationDuration: '2s' }} />
       <div className="absolute h-32 w-32 rounded-full border-2 border-red-400/40 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
       <motion.div
@@ -79,182 +81,57 @@ function SOSIllustration() {
         <Phone className="size-8 text-white" />
         <span className="text-sm font-black text-white tracking-wider mt-0.5">SOS</span>
       </motion.div>
-      {/* Decorative location dots */}
-      <motion.div
-        className="absolute top-2 right-6"
-        animate={{ opacity: [0.3, 1, 0.3] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <MapPin className="size-5 text-red-300" />
-      </motion.div>
-      <motion.div
-        className="absolute bottom-4 left-4"
-        animate={{ opacity: [1, 0.3, 1] }}
-        transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-      >
-        <AlertTriangle className="size-5 text-amber-300" />
-      </motion.div>
     </div>
   );
 }
 
 function AITriageIllustration() {
-  const symptoms = [
-    { icon: Thermometer, label: 'Fever', color: 'text-orange-500 bg-orange-100 dark:bg-orange-950/50' },
-    { icon: Heart, label: 'Chest Pain', color: 'text-red-500 bg-red-100 dark:bg-red-950/50' },
-    { icon: Headphones, label: 'Headache', color: 'text-purple-500 bg-purple-100 dark:bg-purple-950/50' },
-    { icon: Activity, label: 'Dizziness', color: 'text-amber-500 bg-amber-100 dark:bg-amber-950/50' },
-  ];
-
   return (
-    <div className="relative flex flex-col items-center justify-center h-full gap-4">
-      {/* Brain icon */}
+    <div className="relative flex flex-col items-center justify-center h-full gap-3">
       <motion.div
-        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-950/50"
+        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-500 dark:bg-violet-500/30"
         animate={{ rotate: [0, 5, -5, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <Brain className="size-8 text-violet-500" />
+        <Brain className="size-8" />
       </motion.div>
-
-      {/* Symptom chips */}
-      <div className="flex flex-wrap justify-center gap-2 mt-2">
-        {symptoms.map((sym, i) => {
-          const Icon = sym.icon;
-          return (
-            <motion.div
-              key={sym.label}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${sym.color}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.2 + 0.3 }}
-            >
-              <Icon className="size-3.5" />
-              {sym.label}
-            </motion.div>
-          );
-        })}
+      <div className="flex gap-2">
+        <span className="rounded-full bg-red-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-red-500 border border-red-500/20">Critical</span>
+        <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/20">Priority 1</span>
       </div>
-
-      {/* AI Assessment Result */}
-      <motion.div
-        className="mt-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 dark:border-violet-800 dark:bg-violet-950/30"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.2 }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500">
-            <span className="text-[10px] font-bold text-white">!</span>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">Severity: CRITICAL</p>
-            <p className="text-[10px] text-violet-500">Immediate medical attention advised</p>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }
 
 function LiveTrackingIllustration() {
   return (
-    <div className="relative flex flex-col items-center justify-center h-full">
-      {/* Map-style dotted path */}
-      <svg className="w-64 h-20" viewBox="0 0 260 80" fill="none">
-        <path
-          d="M 30 60 Q 80 20, 130 40 Q 180 60, 230 20"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray="6 4"
-          className="text-emerald-400"
-        />
-        {/* Start marker (user) */}
-        <circle cx="30" cy="60" r="8" className="fill-sky-500" />
-        <text x="30" y="63" textAnchor="middle" className="fill-white" fontSize="8" fontWeight="bold">U</text>
-        {/* End marker (hospital) */}
-        <circle cx="230" cy="20" r="8" className="fill-red-500" />
-        <text x="230" y="23" textAnchor="middle" className="fill-white" fontSize="8" fontWeight="bold">H</text>
-      </svg>
-
-      {/* Animated ambulance */}
+    <div className="relative flex flex-col items-center justify-center h-full gap-3">
       <motion.div
-        className="absolute"
-        animate={{
-          left: ['15%', '85%'],
-          top: ['55%', '20%'],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'linear', repeatType: 'reverse' }}
+        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-500 dark:bg-emerald-500/30"
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <motion.div
-          animate={{ rotate: [-2, 2, -2] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg border-2 border-emerald-500 dark:bg-gray-800">
-            <Truck className="size-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-        </motion.div>
+        <Truck className="size-8" />
       </motion.div>
-
-      {/* ETA badge */}
-      <motion.div
-        className="mt-4 flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 dark:bg-emerald-950/40"
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <Clock className="size-4 text-emerald-600 dark:text-emerald-400" />
-        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">ETA: 4 min</span>
-      </motion.div>
+      <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+        <Clock className="size-3" /> ETA: 3.2 mins
+      </div>
     </div>
   );
 }
 
 function HospitalReadyIllustration() {
-  const beds = [
-    { status: 'ready', label: 'ICU-1' },
-    { status: 'ready', label: 'ICU-2' },
-    { status: 'ready', label: 'ER-1' },
-    { status: 'occupied', label: 'ER-2' },
-    { status: 'ready', label: 'GEN-1' },
-    { status: 'ready', label: 'GEN-2' },
-  ];
-
   return (
-    <div className="relative flex flex-col items-center justify-center h-full gap-4">
-      {/* Hospital building */}
+    <div className="relative flex flex-col items-center justify-center h-full gap-3">
       <motion.div
-        className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-950/50"
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 3, repeat: Infinity }}
+        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-500 dark:bg-sky-500/30"
+        animate={{ scale: [1, 1.03, 1] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <Building2 className="size-7 text-emerald-600 dark:text-emerald-400" />
+        <Building2 className="size-8" />
       </motion.div>
-
-      <p className="text-xs font-medium text-muted-foreground">Bed Availability</p>
-
-      {/* Bed grid */}
-      <div className="grid grid-cols-3 gap-2">
-        {beds.map((bed, i) => (
-          <motion.div
-            key={bed.label}
-            className={`relative flex flex-col items-center justify-center rounded-lg border px-3 py-2 ${
-              bed.status === 'ready'
-                ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
-                : 'border-muted bg-muted/50'
-            }`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 + 0.2 }}
-          >
-            <BedDouble className={`size-4 ${bed.status === 'ready' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
-            <span className="mt-1 text-[10px] font-medium text-muted-foreground">{bed.label}</span>
-            {bed.status === 'ready' && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500">
-                <Shield className="size-2.5 text-white" />
-              </span>
-            )}
-          </motion.div>
-        ))}
+      <div className="flex gap-2">
+        <span className="rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-sky-500 border border-sky-500/20">ICU Bed 4 Cleared</span>
       </div>
     </div>
   );
@@ -262,57 +139,15 @@ function HospitalReadyIllustration() {
 
 function QRCardIllustration() {
   return (
-    <div className="relative flex flex-col items-center justify-center h-full gap-4">
-      {/* Card mockup */}
+    <div className="relative flex flex-col items-center justify-center h-full gap-3">
       <motion.div
-        className="w-48 rounded-xl border bg-white p-4 shadow-lg dark:bg-gray-800 dark:border-gray-700"
-        animate={{ rotateY: [0, 5, -5, 0] }}
+        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-500 dark:bg-amber-500/30"
+        animate={{ rotateY: [0, 10, -10, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        {/* Card header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Stethoscope className="size-4 text-red-500" />
-            <span className="text-xs font-bold text-foreground">LifeLink</span>
-          </div>
-          <div className="rounded bg-red-100 px-1.5 py-0.5 dark:bg-red-950/50">
-            <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">MEDICAL</span>
-          </div>
-        </div>
-
-        {/* User info */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-            <User className="size-4 text-gray-500" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-foreground">John Doe</p>
-            <p className="text-[10px] text-muted-foreground">O+ • Age 28</p>
-          </div>
-        </div>
-
-        {/* QR code mockup */}
-        <div className="flex justify-center">
-          <div className="grid grid-cols-7 gap-0.5 p-2 rounded bg-gray-50 dark:bg-gray-700">
-            {Array.from({ length: 49 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 w-1.5 rounded-[0.5px] ${
-                  Math.random() > 0.4 ? 'bg-gray-800 dark:bg-gray-200' : 'bg-transparent'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
+        <QrCode className="size-8" />
       </motion.div>
-
-      <motion.p
-        className="text-[10px] text-muted-foreground"
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        Scan for complete medical profile
-      </motion.p>
+      <span className="text-[11px] font-medium text-muted-foreground">Scannable Medical ID</span>
     </div>
   );
 }
@@ -320,16 +155,21 @@ function QRCardIllustration() {
 /* ===== Main Demo Modal ===== */
 
 export default function DemoModal({ open, onClose }: DemoModalProps) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [autoPlay, setAutoPlay] = useState(false);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
+  const dm = t.demoModal;
+
   const steps: DemoStep[] = [
     {
       id: 1,
-      title: 'SOS Emergency',
-      description: 'Activate SOS with one tap. Our system immediately locates you and dispatches the nearest ambulance.',
+      titleKey: 'sos',
+      descKey: 'sos',
+      fallbackTitle: 'SOS Emergency',
+      fallbackDesc: 'Activate SOS with one tap. Our system immediately locates you and dispatches the nearest ambulance.',
       icon: Phone,
       color: 'text-red-500',
       bgGradient: 'from-red-500/10 to-orange-500/5 dark:from-red-500/20 dark:to-orange-500/10',
@@ -337,8 +177,10 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
     },
     {
       id: 2,
-      title: 'AI Triage',
-      description: 'Our AI analyzes your symptoms in real-time and assigns severity levels.',
+      titleKey: 'aiTriage',
+      descKey: 'aiTriage',
+      fallbackTitle: 'AI Triage',
+      fallbackDesc: 'Our AI analyzes your symptoms in real-time and assigns severity levels.',
       icon: Brain,
       color: 'text-violet-500',
       bgGradient: 'from-violet-500/10 to-purple-500/5 dark:from-violet-500/20 dark:to-purple-500/10',
@@ -346,8 +188,10 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
     },
     {
       id: 3,
-      title: 'Live Tracking',
-      description: 'Track your ambulance in real-time with accurate ETA updates.',
+      titleKey: 'tracking',
+      descKey: 'tracking',
+      fallbackTitle: 'Live Tracking',
+      fallbackDesc: 'Track your ambulance in real-time with accurate ETA updates.',
       icon: Truck,
       color: 'text-emerald-500',
       bgGradient: 'from-emerald-500/10 to-teal-500/5 dark:from-emerald-500/20 dark:to-teal-500/10',
@@ -355,8 +199,10 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
     },
     {
       id: 4,
-      title: 'Hospital Ready',
-      description: 'The receiving hospital is notified and prepares for your arrival.',
+      titleKey: 'hospitalReady',
+      descKey: 'hospitalReady',
+      fallbackTitle: 'Hospital Ready',
+      fallbackDesc: 'The receiving hospital is notified and prepares for your arrival.',
       icon: Building2,
       color: 'text-emerald-500',
       bgGradient: 'from-emerald-500/10 to-sky-500/5 dark:from-emerald-500/20 dark:to-sky-500/10',
@@ -364,8 +210,10 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
     },
     {
       id: 5,
-      title: 'QR Medical Card',
-      description: 'Carry your complete medical profile as a scannable QR card.',
+      titleKey: 'qrCard',
+      descKey: 'qrCard',
+      fallbackTitle: 'QR Medical Card',
+      fallbackDesc: 'Carry your complete medical profile as a scannable QR card.',
       icon: QrCode,
       color: 'text-amber-500',
       bgGradient: 'from-amber-500/10 to-yellow-500/5 dark:from-amber-500/20 dark:to-yellow-500/10',
@@ -374,10 +222,10 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
   ];
 
   const goToStep = useCallback(
-    (step: number, dir: number) => {
-      if (step < 0 || step >= steps.length) return;
+    (stepIndex: number, dir: number) => {
+      if (stepIndex < 0 || stepIndex >= steps.length) return;
       setDirection(dir);
-      setCurrentStep(step);
+      setCurrentStep(stepIndex);
     },
     [steps.length],
   );
@@ -385,7 +233,6 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
   const nextStep = useCallback(() => goToStep(currentStep + 1, 1), [currentStep, goToStep]);
   const prevStep = useCallback(() => goToStep(currentStep - 1, -1), [currentStep, goToStep]);
 
-  // Auto-play logic
   useEffect(() => {
     if (autoPlay) {
       autoPlayRef.current = setInterval(() => {
@@ -409,6 +256,9 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
   const step = steps[currentStep];
   const StepIcon = step.icon;
 
+  const title = (t.features?.items as Record<string, { title: string; description: string }>)?.[step.titleKey]?.title ?? step.fallbackTitle;
+  const description = (t.features?.items as Record<string, { title: string; description: string }>)?.[step.descKey]?.description ?? step.fallbackDesc;
+
   const handleClose = useCallback(() => {
     setCurrentStep(0);
     setAutoPlay(false);
@@ -419,8 +269,8 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="sm:max-w-[800px] p-0 gap-0 overflow-hidden">
         <DialogHeader className="sr-only">
-          <DialogTitle>LifeLink Demo Walkthrough</DialogTitle>
-          <DialogDescription>Interactive step-by-step demo of LifeLink features</DialogDescription>
+          <DialogTitle>{dm?.modalTitle ?? 'LifeLink Demo Walkthrough'}</DialogTitle>
+          <DialogDescription>{dm?.modalDesc ?? 'Interactive step-by-step demo of LifeLink features'}</DialogDescription>
         </DialogHeader>
 
         {/* Top bar with step number and close */}
@@ -440,7 +290,7 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
               onClick={() => setAutoPlay(!autoPlay)}
             >
               {autoPlay ? <Pause className="size-3" /> : <Play className="size-3" />}
-              {autoPlay ? 'Pause' : 'Play Demo'}
+              {autoPlay ? (dm?.pause ?? 'Pause') : (dm?.playDemo ?? 'Play Demo')}
             </Button>
           </div>
         </div>
@@ -477,7 +327,7 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
                 transition={{ delay: 0.2 }}
                 className="text-xl font-bold text-foreground"
               >
-                {step.title}
+                {title}
               </motion.h3>
               <motion.p
                 key={`desc-${currentStep}`}
@@ -486,7 +336,7 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
                 transition={{ delay: 0.3 }}
                 className="mt-2 text-sm leading-relaxed text-muted-foreground"
               >
-                {step.description}
+                {description}
               </motion.p>
             </div>
           </div>
@@ -502,7 +352,7 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
             disabled={currentStep === 0}
           >
             <ChevronLeft className="size-4" />
-            Previous
+            {dm?.prev ?? 'Previous'}
           </Button>
 
           {/* Step dots */}
@@ -526,7 +376,7 @@ export default function DemoModal({ open, onClose }: DemoModalProps) {
             className="gap-1.5 bg-emergency hover:bg-emergency/90 text-emergency-foreground"
             onClick={currentStep === steps.length - 1 ? onClose : nextStep}
           >
-            {currentStep === steps.length - 1 ? 'Done' : 'Next'}
+            {currentStep === steps.length - 1 ? (dm?.done ?? 'Done') : (dm?.next ?? 'Next')}
             {currentStep < steps.length - 1 && <ChevronRight className="size-4" />}
           </Button>
         </div>
