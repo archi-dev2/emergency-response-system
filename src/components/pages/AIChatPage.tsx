@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, Send, Siren, Sparkles, Brain, Heart, Thermometer, Pill,
-  Activity, AlertTriangle, ChevronRight, Mic, MicOff, X, Clock,
-  Zap, Shield, RefreshCw, MessageCircle, User,
+  Activity, AlertTriangle, ChevronRight, X,
+  Zap, Shield, RefreshCw, MessageCircle, User, BookOpen, FileText, Database, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigationStore, useAuthStore } from '@/store';
 import { cn } from '@/lib/utils';
+import type { AIChatSource } from '@/app/api/chat/route';
 
 // ─── Medical knowledge base ──────────────────────────────────────────────────
 interface QA { q: string; a: string; severity: number; tags: string[] }
@@ -130,6 +131,7 @@ interface Message {
   content: string;
   severity?: number;
   timestamp: Date;
+  sources?: AIChatSource[];
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -228,6 +230,68 @@ function NeuralBackground() {
   );
 }
 
+// ─── Source type icons ───────────────────────────────────────────────────────
+const SOURCE_TYPE_CONFIG = {
+  knowledge_base: { icon: Database, label: 'Knowledge Base', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' },
+  medical_record: { icon: FileText, label: 'Patient Record', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' },
+  ocr_report:    { icon: FileText, label: 'OCR Report',     color: 'text-teal-600 dark:text-teal-400',  bg: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800'   },
+} as const;
+
+// ─── Sources panel ────────────────────────────────────────────────────────────
+function SourcesPanel({ sources }: { sources: AIChatSource[] }) {
+  const [open, setOpen] = useState(false);
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors group"
+      >
+        <BookOpen className="w-3.5 h-3.5 group-hover:text-violet-500 transition-colors" />
+        <span>{sources.length} source{sources.length > 1 ? 's' : ''} consulted</span>
+        <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', open && 'rotate-180')} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-2 space-y-1.5">
+              {sources.map((src) => {
+                const cfg = SOURCE_TYPE_CONFIG[src.type] ?? SOURCE_TYPE_CONFIG.knowledge_base;
+                const Icon = cfg.icon;
+                return (
+                  <div
+                    key={src.id}
+                    className={cn(
+                      'flex items-start gap-2 text-[11px] px-2.5 py-2 rounded-xl border',
+                      cfg.bg,
+                    )}
+                  >
+                    <Icon className={cn('w-3.5 h-3.5 shrink-0 mt-0.5', cfg.color)} />
+                    <div className="min-w-0">
+                      <p className={cn('font-semibold leading-tight truncate', cfg.color)}>{src.label}</p>
+                      {src.detail && (
+                        <p className="text-muted-foreground/70 mt-0.5">{src.detail}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function AIChatPage() {
   const { user } = useAuthStore();
@@ -262,14 +326,15 @@ export default function AIChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, userId: user?.id }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const answer: string = data.message ?? 'Sorry, I could not get a response. Please try again.';
       const severity: number = data.severity ?? 1;
+      const sources: AIChatSource[] = data.sources ?? [];
       setSessionSeverity((prev) => Math.max(prev, severity));
-      const botMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: answer, severity, timestamp: new Date() };
+      const botMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: answer, severity, sources, timestamp: new Date() };
       setMessages((prev) => [...prev, botMsg]);
     } catch {
       const { answer, severity } = getAnswer(text);
@@ -279,7 +344,7 @@ export default function AIChatPage() {
     } finally {
       setIsTyping(false);
     }
-  }, []);
+  }, [user?.id]);
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); sendMessage(input); };
   const handleQuickPrompt = (query: string) => { sendMessage(query); };
@@ -479,6 +544,11 @@ export default function AIChatPage() {
                         <ChevronRight className="w-3.5 h-3.5" />
                       </Button>
                     </motion.div>
+                  )}
+
+                  {/* Sources panel */}
+                  {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                    <SourcesPanel sources={msg.sources} />
                   )}
                 </div>
               </motion.div>
