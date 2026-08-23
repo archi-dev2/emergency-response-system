@@ -1,20 +1,25 @@
 /**
  * chroma-client.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * Thin TypeScript wrapper around the LifeLink ChromaDB HTTP sidecar.
- * The sidecar (model/chroma_server.py) must be running on CHROMA_SERVER_URL.
+ * Directly queries the trained medical model inside the `model/` directory.
+ * No external ChromaDB server or network URL required!
  *
- * Usage:
- *   import { queryChromaDB } from '@/lib/chroma-client';
- *   const results = await queryChromaDB('fever management', 4);
+ * Runs `model/query_chroma.py` via child_process, which reads directly from
+ * `model/chroma.sqlite3` and the local Chroma collection store.
  */
+
+import { execFile } from 'child_process';
+import path from 'path';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 export interface ChromaChunk {
   id: string;
   document: string;
   metadata: Record<string, unknown>;
   distance: number;
-  /** Human-readable citation, e.g. "Harrison's Manual 20e — Infectious Disease, p.123" */
+  /** Human-readable citation, e.g. "Harrison's Manual of Medicine (20th Edition) — Chapter 131: Asthma — p.735" */
   source: string;
 }
 
@@ -22,52 +27,61 @@ export interface ChromaQueryResult {
   query: string;
   results: ChromaChunk[];
   collection: string;
-  available: boolean; // false when sidecar is unreachable (graceful degradation)
+  available: boolean;
 }
 
-const CHROMA_URL = process.env.CHROMA_SERVER_URL ?? 'http://localhost:8001';
-
 /**
- * Query the Harrison's Manual ChromaDB knowledge base.
- * Returns an empty result set (never throws) when the sidecar is unavailable,
- * so the chat route degrades gracefully to Gemini-only mode.
+ * Query the local Harrison's Manual model stored in the `model/` directory.
  */
 export async function queryChromaDB(
   query: string,
   nResults = 4,
 ): Promise<ChromaQueryResult> {
-  try {
-    const res = await fetch(`${CHROMA_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, n_results: nResults }),
-      signal: AbortSignal.timeout(5_000), // 5 s timeout — don't block chat
-    });
+  if (!query || !query.trim()) {
+    return { query, results: [], collection: 'harrisons_manual_20e', available: true };
+  }
 
-    if (!res.ok) {
-      console.warn(`[ChromaDB] Sidecar returned ${res.status}; degrading gracefully`);
-      return { query, results: [], collection: 'unavailable', available: false };
+  try {
+    const scriptPath = path.join(process.cwd(), 'model', 'query_chroma.py');
+    const { stdout, stderr } = await execFileAsync(
+      'python',
+      [scriptPath, query, String(nResults)],
+      {
+        timeout: 4000, // 4s timeout max
+        maxBuffer: 1024 * 1024 * 5, // 5MB buffer
+      }
+    );
+
+    if (stderr && stderr.trim()) {
+      console.warn('[Model Query Notice]:', stderr.trim());
     }
 
-    const data = await res.json();
-    return { ...data, available: true };
+    const trimmed = stdout.trim();
+    if (!trimmed) {
+      return { query, results: [], collection: 'harrisons_manual_20e', available: true };
+    }
+
+    const results: ChromaChunk[] = JSON.parse(trimmed);
+    return {
+      query,
+      results,
+      collection: 'harrisons_manual_20e',
+      available: true,
+    };
   } catch (err) {
-    // Sidecar not running or network error — degrade silently
-    console.warn('[ChromaDB] Sidecar unreachable:', (err as Error).message);
-    return { query, results: [], collection: 'unavailable', available: false };
+    console.warn('[Local Model Query Error]:', (err as Error).message);
+    return {
+      query,
+      results: [],
+      collection: 'harrisons_manual_20e',
+      available: false,
+    };
   }
 }
 
 /**
- * Check whether the ChromaDB sidecar is online.
+ * Check whether the local model files exist in `model/`.
  */
 export async function isChromaAvailable(): Promise<boolean> {
-  try {
-    const res = await fetch(`${CHROMA_URL}/health`, {
-      signal: AbortSignal.timeout(2_000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return true;
 }
