@@ -1,0 +1,7 @@
+# LifeLink ChromaDB Sidecar — Python Dependencies
+# Install with: pip install -r model/requirements.txt
+
+chromadb>=0.6.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.0.0
